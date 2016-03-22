@@ -13,10 +13,10 @@ import it.simonedegiacomi.goboxapi.myws.WSEventListener;
 import it.simonedegiacomi.goboxapi.myws.WSQueryResponseListener;
 import it.simonedegiacomi.goboxapi.utils.EasyHttps;
 import it.simonedegiacomi.goboxapi.utils.EasyHttpsException;
-import it.simonedegiacomi.goboxapi.utils.UDPUtils;
+import it.simonedegiacomi.storage.utils.UDPUtils;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 import it.simonedegiacomi.storage.UDPStorageServer;
-import it.simonedegiacomi.utils.MyGsonBuilder;
+import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
 import org.apache.log4j.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
