@@ -98,7 +98,7 @@ public class MyWSClient {
         server = factory.createSocket(uri);
         server.addListener(new WebSocketAdapter() {
             @Override
-            public void onTextMessage(WebSocket websocket, String message) throws Exception {
+            public void onTextMessage(WebSocket websocket, final String message) throws Exception {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {

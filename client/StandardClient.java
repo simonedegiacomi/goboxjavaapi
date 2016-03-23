@@ -13,9 +13,8 @@ import it.simonedegiacomi.goboxapi.myws.WSEventListener;
 import it.simonedegiacomi.goboxapi.myws.WSQueryResponseListener;
 import it.simonedegiacomi.goboxapi.utils.EasyHttps;
 import it.simonedegiacomi.goboxapi.utils.EasyHttpsException;
-import it.simonedegiacomi.storage.utils.UDPUtils;
+import it.simonedegiacomi.goboxapi.utils.UDPUtils;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
-import it.simonedegiacomi.storage.UDPStorageServer;
 import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
 import org.apache.log4j.Logger;
 
@@ -40,6 +39,8 @@ import java.util.concurrent.Phaser;
  * Created on 31/12/2015.
  */
 public class StandardClient extends Client {
+
+    private static final int DEFAULT_PORT = 546;
 
     public enum ConnectionMode { BRIDGE_MODE, DIRECT_MODE };
 
@@ -152,7 +153,7 @@ public class StandardClient extends Client {
             }
         });
 
-        CountDownLatch readyCountDown = new CountDownLatch(1);
+        final CountDownLatch readyCountDown = new CountDownLatch(1);
         try {
             // Register the storageInfo event
             server.onEvent("storageInfo", new WSEventListener() {
@@ -443,7 +444,7 @@ public class StandardClient extends Client {
             byte[] requestBytes = requestString.getBytes();
 
             // Send the request trough UDP
-            UDPUtils.sendBroadcastPacket(UDPStorageServer.DEFAULT_PORT, requestBytes);
+            UDPUtils.sendBroadcastPacket(DEFAULT_PORT, requestBytes);
 
             try {
                 DatagramPacket response = UDPUtils.receive();

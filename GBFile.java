@@ -5,12 +5,8 @@ import com.google.common.hash.Hashing;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import org.apache.tika.Tika;
-
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -140,24 +136,6 @@ public class GBFile {
         this.name = file.getName();
         this.isDirectory = file.isDirectory();
         this.setPathByString(file.getPath(), prefix);
-        try {
-            loadAttributes();
-        } catch (IOException e) {
-            // Trust me, i really care...
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * This method loads the attributes of the file.
-     */
-    public void loadAttributes () throws IOException {
-        BasicFileAttributes attrs = Files.readAttributes(javaFile.toPath(), BasicFileAttributes.class);
-        this.size = attrs.size();
-        this.creationDate = attrs.creationTime().toMillis();
-        this.lastUpdateDate = attrs.lastAccessTime().toMillis();
-        if(!javaFile.isDirectory())
-            this.mime = new Tika().detect(javaFile);
     }
 
     /**
