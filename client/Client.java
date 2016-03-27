@@ -1,8 +1,11 @@
 package it.simonedegiacomi.goboxapi.client;
 
 import it.simonedegiacomi.goboxapi.GBFile;
+import it.simonedegiacomi.goboxapi.Sharing;
 
 import java.io.*;
+import java.net.URL;
+import java.util.List;
 
 /**
  * This is the interface of the goboxclient api and define the basic operation
@@ -126,4 +129,8 @@ public abstract class Client {
      * Close the connection with the storage and release all the resources.
      */
     public abstract void shutdown () throws ClientException;
+
+    public abstract List<GBFile> getSharedFiles() throws ClientException;
+
+    public abstract List<GBFile> getFilesByFilter(GBFilter filter) throws ClientException;
 }

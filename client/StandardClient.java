@@ -4,9 +4,11 @@ import com.google.common.io.ByteStreams;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import com.neovisionaries.ws.client.WebSocketException;
 import it.simonedegiacomi.goboxapi.GBCache;
 import it.simonedegiacomi.goboxapi.GBFile;
+import it.simonedegiacomi.goboxapi.Sharing;
 import it.simonedegiacomi.goboxapi.authentication.Auth;
 import it.simonedegiacomi.goboxapi.myws.MyWSClient;
 import it.simonedegiacomi.goboxapi.myws.WSEventListener;
@@ -17,13 +19,13 @@ import it.simonedegiacomi.goboxapi.utils.UDPUtils;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
 import org.apache.log4j.Logger;
-
 import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -94,7 +96,7 @@ public class StandardClient extends Client {
      *
      * @param auth Auth object that will be used to authenticate
      */
-    public StandardClient(final Auth auth) throws ClientException {
+    public StandardClient(final Auth auth) {
         this.auth = auth;
     }
 
@@ -119,7 +121,7 @@ public class StandardClient extends Client {
      */
     @Override
     public boolean isOnline() {
-        return server.isConnected();
+        return server == null ? false : server.isConnected();
     }
 
     /**
@@ -143,6 +145,8 @@ public class StandardClient extends Client {
             @Override
             public void onEvent(JsonElement data) {
                 // TODO: Send network info
+                if(onConnectListener != null)
+                    onConnectListener.onEvent(null);
             }
         });
 
@@ -175,6 +179,12 @@ public class StandardClient extends Client {
         } catch (InterruptedException ex) {
             throw new ClientException("Storage event info not received");
         }
+    }
+
+    private WSEventListener onConnectListener;
+
+    public void setOnConnectListener (WSEventListener listener) {
+        this.onConnectListener = listener;
     }
 
     /**
@@ -389,6 +399,41 @@ public class StandardClient extends Client {
 
     @Override
     public void shutdown() throws ClientException {
+        if(server == null || !server.isConnected())
+            throw new ClientException("Client not connected");
+    }
+
+    @Override
+    public List<GBFile> getSharedFiles() throws ClientException {
+        try {
+            JsonObject response = server.makeQuery("getSharedFiles", new JsonObject()).get().getAsJsonObject();
+            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
+        } catch (InterruptedException ex) {
+
+        } catch (ExecutionException ex) {
+
+        }
+        return null;
+    }
+
+    @Override
+    public List<GBFile> getFilesByFilter(GBFilter filter) throws ClientException {
+
+        JsonElement request = gson.toJsonTree(filter, GBFilter.class);
+        try {
+            JsonObject response = server.makeQuery("search", request).get().getAsJsonObject();
+            if(response.get("error").getAsBoolean())
+                return null;
+            return gson.fromJson(response.get("result"), new TypeToken<List<GBFile>>(){}.getType());
+        } catch (InterruptedException ex) {
+
+        } catch (ExecutionException ex) {
+
+        }
+        return null;
+    }
+
+    public void shutdownSync () throws ClientException {
         if(server == null || !server.isConnected())
             throw new ClientException("Client not connected");
         works.arriveAndAwaitAdvance();

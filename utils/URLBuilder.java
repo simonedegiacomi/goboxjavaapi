@@ -11,6 +11,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Properties;
 
+import it.simonedegiacomi.goboxapi.GBFile;
+
 /**
  * This object is used to store the url to use in
  * the program. It saves the url in  a file and reload
@@ -93,6 +95,31 @@ public class URLBuilder {
         try {
             return URLParams.createURL(properties.get(what).toString(), (JsonObject) params, singleParam);
         } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private StringBuilder baseDownloadUrl (GBFile file) {
+        return new StringBuilder()
+                .append(getAsString("getFile"))
+                .append("?ID=")
+                .append(file.getID());
+    }
+
+    public String getFileUrlAsString (GBFile file) {
+        return baseDownloadUrl(file ).toString();
+    }
+
+    public String getPreviewAsString (GBFile file) {
+        return baseDownloadUrl(file)
+                .append("&preview=true")
+                .toString();
+    }
+
+    public URL getFileUrl (GBFile file) {
+        try {
+            return new URL(getFileUrlAsString(file));
+        } catch (MalformedURLException ex) {
             return null;
         }
     }

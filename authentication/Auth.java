@@ -8,6 +8,7 @@ import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 
 /**
  * The object of this class contains the credentials of a GoBoxAccount.
@@ -137,7 +138,7 @@ public class Auth {
      * Authorize an http connection made to the server
      * @param conn Connection to authorize
      */
-    public void authorize (HttpsURLConnection conn) {
+    public void authorize (HttpURLConnection conn) {
         conn.setRequestProperty("Authorization", getHeaderToken());
     }
 

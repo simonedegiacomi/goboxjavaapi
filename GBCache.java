@@ -13,6 +13,8 @@ public class GBCache {
         if(file.getID() != GBFile.UNKNOWN_ID)
             cacheById.put(file.getID(), file);
         cacheByPath.put(file.getPathAsString(), file);
+        if(file.getChildren() == null)
+            return;
         for(GBFile child : file.getChildren())
             if(!child.isDirectory())
                 add(child);
