@@ -2,6 +2,7 @@ package it.simonedegiacomi.goboxapi.utils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import it.simonedegiacomi.goboxapi.GBFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,8 +11,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Properties;
-
-import it.simonedegiacomi.goboxapi.GBFile;
 
 /**
  * This object is used to store the url to use in

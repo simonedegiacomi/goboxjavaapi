@@ -1,10 +1,8 @@
 package it.simonedegiacomi.goboxapi.client;
 
 import it.simonedegiacomi.goboxapi.GBFile;
-import it.simonedegiacomi.goboxapi.Sharing;
 
 import java.io.*;
-import java.net.URL;
 import java.util.List;
 
 /**

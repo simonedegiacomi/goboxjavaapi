@@ -6,7 +6,6 @@ import it.simonedegiacomi.goboxapi.utils.EasyHttps;
 import it.simonedegiacomi.goboxapi.utils.EasyHttpsException;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 
-import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 

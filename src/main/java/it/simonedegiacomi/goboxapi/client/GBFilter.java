@@ -1,9 +1,5 @@
 package it.simonedegiacomi.goboxapi.client;
 
-import com.google.gson.Gson;
-
-import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
-
 /**
  * Created by simone on 26/03/16.
  */
