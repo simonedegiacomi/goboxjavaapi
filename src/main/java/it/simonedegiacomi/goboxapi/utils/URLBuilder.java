@@ -22,7 +22,7 @@ import java.util.Properties;
  */
 public class URLBuilder {
 
-    private static final String DEFAULT_URLS_LOCATION = "/it/simonedegiacomi/resources/urls.conf";
+    private static final String DEFAULT_URLS_LOCATION = "/urls.conf";
 
     /**
      * Properties that contains the url
