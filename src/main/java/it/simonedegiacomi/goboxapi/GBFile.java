@@ -1,16 +1,13 @@
 package it.simonedegiacomi.goboxapi;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import java.io.File;
-import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Class used to create the logic database representation
@@ -20,11 +17,6 @@ import java.util.logging.Logger;
  */
 @DatabaseTable(tableName = "file")
 public class GBFile {
-
-    /**
-     * Logger of the class
-     */
-    private static final Logger log = Logger.getLogger(GBFile.class.getName());
 
     /**
      * The ID of the ROOT directory (well.. file)
@@ -63,6 +55,11 @@ public class GBFile {
     private long size;
 
     /**
+     * Prefix of the absolute path of the file
+     */
+    private String prefix;
+
+    /**
      * Name of the file
      */
     @DatabaseField(canBeNull = false)
@@ -87,17 +84,6 @@ public class GBFile {
      */
     private List<GBFile> path;
 
-    /**
-     * Hash of the file
-     */
-    private HashCode hash;
-
-    /**
-     * If the file is wrapped, this refer to the original file.
-     * This field shouldn't be serialized, so the 'transient' keyword
-     */
-    private transient File javaFile;
-
     @DatabaseField(columnName = "mime", dataType = DataType.STRING)
     private String mime;
 
@@ -106,10 +92,13 @@ public class GBFile {
      */
     private List<GBFile> children;
 
-    private GBFile () { }
+    public GBFile () { }
 
     public GBFile (long id) {
-        this.ID = Math.max(UNKNOWN_ID, id);
+        if(id < 0)
+            throw new InvalidParameterException("The file id cannot be a negative value");
+
+        this.ID = id;
     }
 
     /**
@@ -133,10 +122,10 @@ public class GBFile {
      * @param prefix Prefix to remove from the path
      */
     public GBFile (File file, String prefix) {
-        this.javaFile = file;
         this.name = file.getName();
         this.isDirectory = file.isDirectory();
-        this.setPathByString(file.getPath(), prefix);
+        this.lastUpdateDate = file.lastModified();
+        setAbsolutePathByString(file.toString(), prefix);
     }
 
     /**
@@ -203,7 +192,6 @@ public class GBFile {
     public void setFatherID(long newFatherID) {
         this.fatherID = newFatherID;
     }
-
 
     /**
      * Return the ID of the file
@@ -284,18 +272,6 @@ public class GBFile {
     }
 
     /**
-     * Return the hash of the file if the file was wrapped from a File and
-     * if is not an directory.
-     * This method will block the thread until the hash is computed
-     * @return The hash of the file
-     */
-    public HashCode getHash () throws IOException {
-        if (hash == null && !isDirectory && javaFile != null)
-            hash = com.google.common.io.Files.hash(javaFile, Hashing.md5());
-        return hash;
-    }
-
-    /**
      * Generate a new GBFile, with his fatherID equals to this id
      * @param name Name of the new file
      * @param isDirectory is a directory or a  file?
@@ -306,39 +282,74 @@ public class GBFile {
     }
 
     /**
-     * Return the path of the file as a string. This path contains this file as last
-     * node and the specified prefix passed as argument
-     * @param prefix Prefix to add to the generated path
-     * @return String path of the file
+     * Return the Path as a list of 'piece'. The last piece is this file
+     * @return List representation of the path including this file
      */
-    public String getPathAsString(String prefix) {
-        StringBuilder builder = new StringBuilder();
-        if(prefix != null)
-            builder.append(prefix);
-        for(GBFile piece : getPathAsList())
-            builder.append('/').append(piece.getName());
-        return builder.toString();
-    }
+    public List<GBFile> getPathAsList() {
+        // Create the list
+        LinkedList<GBFile> temp = new LinkedList<>();
 
-    /**
-     * Return the path of the file as a string. This path include this file ad last node
-     * @return String path of the file
-     */
-    public String getPathAsString() {
-        return getPathAsString(null);
+        // If the path is defined, add all the pieces
+        if(path != null)
+            temp.addAll(path);
+
+        // Add the name of this file
+        temp.add(this);
+
+        // Return the path as list
+        return temp;
     }
 
     /**
      * Return the Path as a list of 'piece'. The last piece is this file
      * @return List representation of the path including this file
      */
-    public List<GBFile> getPathAsList() {
-        LinkedList<GBFile> temp = new LinkedList<>();
-        if(path != null)
-            temp.addAll(path);
+    public List<GBFile> getAbsolutePathAsList() {
+        // Get the relative path
+        List<GBFile> temp = getPathAsList();
 
-        temp.add(this);
+        String[] pieces = prefix.split("/");
+
+        for (int i = pieces.length - 1;i >= 0;i--)
+                temp.add(0, new GBFile(pieces[i], true));
+
+        // Return the path as list
         return temp;
+    }
+
+    private static String stringify (List<GBFile> list) {
+        StringBuilder builder = new StringBuilder();
+
+        // Add every piece of the path
+        boolean first = true;
+        for(GBFile piece : list) {
+            // If it's not the first piece...
+            if(!first)
+                builder.append('/'); // add the slash
+
+            // Add the piece
+            builder.append(piece.getName());
+
+            if (first)
+                first = false;
+        }
+
+        // Return the path as string
+        return builder.toString();
+    }
+
+    /**
+     * Return the path of the file as a string. This path contains the name of this file as last
+     * node and the specified prefix passed as argument
+     * @param prefix Prefix to add to the generated path
+     * @return String path of the file
+     */
+    public String getPathAsString () {
+        return stringify(getPathAsList());
+    }
+
+    public String getAbsolutePathAsString () {
+        return stringify(getAbsolutePathAsList());
     }
 
     /**
@@ -346,90 +357,75 @@ public class GBFile {
      * @param pieces New path of the file. This list need to contains this file
      *               as last node
      */
-    public void setPathByList(List<GBFile> pieces) {
+    public void setPathByList (List<GBFile> pieces) {
         this.path = pieces;
-        pieces.remove(pieces.size() - 1);
+
+        // Remove this file from the path
+        GBFile myself = pieces.remove(pieces.size() - 1);
+
+        this.name = myself.name;
     }
 
-    /**
-     * Set the new path of the file without updating the fatherID. This
-     * path need to contain this file as last node
-     * @param str String that contains the path
-     */
-    public void setPathByString (String str) {
-        this.setPathByString(str, null);
-    }
+    public void setAbsolutePathByList (List<GBFile> pieces, String prefix) {
+        this.prefix = prefix;
 
-    /**
-     * Set the path from a string. The string prefixToRemove won't be
-     * present in the path
-     * Example:
-     *      str:                "files/new folder"
-     *      prefixToRemove:     "files"
-     *      path:               []
-     *
-     * NOTE that the path in this example is empty because the file 'new folder'
-     * will be added when any getPath will be called. This because Gson doesn't
-     * like an object that contains himself
-     *
-     * @param str String representation of the path
-     * @param prefixToRemove Prefix to remove from the path. The GBFile should have a path
-     *                       relative to the root of the storage, not relative to the FS path
-     *                       or same random folder
-     */
-    public void setPathByString (String str, String prefixToRemove) {
         // Create a new list that holds the nodes
         path = new LinkedList<>();
 
-        // Divide the path and the prefix in string nodes
-        String[] pieces = str.split("/");
-        String[] badPieces = prefixToRemove == null ? new String[0] : prefixToRemove.split("/");
+        String[] badPieces = prefix.split("/");
 
-        // skip the intials bad nodes
+        // skip the initials bad nodes
         int i = 0;
-        while(i < badPieces.length && i < pieces.length && pieces[i].equals(badPieces[i]))
+        while(i < badPieces.length && i < pieces.size() && pieces.get(i).equals(badPieces[i]))
             i++;
 
-        if(i == pieces.length) {
+        if(i == pieces.size()) {
             // All the path is the file! this means that this is the root!
-            this.ID = ROOT_ID;
+            this.ID = ROOT_FILE.ROOT_ID;
+            this.fatherID = ROOT_FILE.UNKNOWN_ID;
+            this.isDirectory = ROOT_FILE.isDirectory;
             return;
         }
-        // Add all the older except the last
-        while(i < pieces.length - 1)
-            path.add(new GBFile(pieces[i++], true));
+
+        // Add all the other except the last
+        while(i < pieces.size() - 1)
+            path.add(pieces.get(i++));
+
+        GBFile myself = pieces.get(pieces.size());
+        this.name = myself.name;
     }
 
     /**
-     * Return the java io.File reference to this file
+     * Set the relative path to the gobox files folder
+     * @param pathString Path fo the file relative to the gobox files folder
+     */
+    public void setPathByString (String pathString) {
+        path = new LinkedList<>();
+        String[] stringPieces = pathString.split("/");
+
+        for(int i = stringPieces.length - 1; i > 0 ;i--)
+            path.add(new GBFile(stringPieces[i], true));
+
+        this.name = stringPieces[stringPieces.length - 1];
+    }
+
+    /**
+     * Set the absolute path of the file.
+     * @param pathString Absolute path of the file
+     * @param prefix Prefix to remove from the absolute path of the file to get the relative path of the
+     *               gobox files folder
+     */
+    public void setAbsolutePathByString (String pathString, String prefix) {
+        this.prefix = prefix;
+        setPathByString(pathString.substring(prefix.length(), pathString.length()));
+    }
+
+    /**
+     * Return the java io.File reference to this file. This file is created using the absolute path
      * @return Reference to this file
      */
     public File toFile () {
-        return toFile(null);
-    }
-
-    /**
-     * Return the java file object of this file adding the specified prefix to
-     * the start of the path (of the file, this prefix doesn't make any difference
-     * to the GBFile path)
-     * If this file is a wrap of java File or this method was already called the file
-     * won't be created, even if the prefix is different
-     * @param prefix Prefix to add to the path of the file
-     * @return Java file
-     */
-    public File toFile (String prefix) {
-        return (javaFile = javaFile == null ? new File(getPathAsString(prefix)) : javaFile);
-    }
-
-    /**
-     * his method apply the information relative of this file to the file system.
-     * If you change the date calling the method 'setCreationDate' the logic representation
-     * of this file changes, but the file in the fs not change. to change that information
-     * call this method.
-     * NOTE: This method will block the thread until the file onEvent the fs is complete updated
-     */
-    public void applyParams () {
-        // TODO: implement this...
+        return new File(getAbsolutePathAsString());
     }
 
     /**
@@ -457,6 +453,22 @@ public class GBFile {
     }
 
     /**
+     * Return the prefix currently used to create the absolute path of the file
+     * @return Current prefix
+     */
+    public String getPrefix() {
+        return prefix;
+    }
+
+    /**
+     * Set the prefix to create the absolute path of the file
+     * @param prefix Prefix to use to create the absolute file path
+     */
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    /**
      * Return the string representation of this file
      * @return Representation of this file
      */
@@ -470,9 +482,7 @@ public class GBFile {
                 ", name='" + name + '\'' +
                 ", creationDate=" + creationDate +
                 ", lastUpdateDate=" + lastUpdateDate +
-                ", path=" + path +
-                ", hash=" + hash +
-                ", javaFile=" + javaFile +
+                ", mime='" + mime + '\'' +
                 '}';
     }
 }
