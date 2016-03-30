@@ -12,8 +12,8 @@ import static org.junit.Assert.*;
  */
 public class AuthTest {
 
-    private String username = "prova";
-    private String password = "prova";
+    private String username = "testAccount";
+    private String password = "testPassword";
 
     @Test
     public void failAuth () throws AuthException {

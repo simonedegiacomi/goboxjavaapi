@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 
+import java.lang.reflect.Modifier;
+
 /**
  * @author Degiacomi Simone
  * Created on 21/02/16.
@@ -12,6 +14,7 @@ public class MyGsonBuilder {
 
     public static Gson create () {
         GsonBuilder builder = new GsonBuilder();
+        builder.excludeFieldsWithModifiers(Modifier.TRANSIENT);
         builder.setLongSerializationPolicy(LongSerializationPolicy.STRING);
         return builder.create();
     }

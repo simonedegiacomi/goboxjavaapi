@@ -23,8 +23,7 @@ public class GBFile {
      */
     public static final long ROOT_ID = 1;
     public static final long UNKNOWN_ID = -1;
-    public static final long UNKNOWN_FATHER = UNKNOWN_ID;
-    public static final GBFile ROOT_FILE = new GBFile(ROOT_ID, UNKNOWN_FATHER, "root", true);
+    public static final GBFile ROOT_FILE = new GBFile(ROOT_ID, UNKNOWN_ID, "root", true);
 
     /**
      * Id of the file. Is not final because when the
@@ -39,7 +38,7 @@ public class GBFile {
      * the root
      */
     @DatabaseField(canBeNull = false, columnName = "father_ID")
-    private long fatherID = UNKNOWN_FATHER;
+    private long fatherID = UNKNOWN_ID;
 
     /**
      * Indicate if the file is a 'real' file or
@@ -308,10 +307,12 @@ public class GBFile {
         // Get the relative path
         List<GBFile> temp = getPathAsList();
 
-        String[] pieces = prefix.split("/");
+        if (prefix != null) {
+            String[] pieces = prefix.split("/");
 
-        for (int i = pieces.length - 1;i >= 0;i--)
+            for (int i = pieces.length - 1; i >= 0; i--)
                 temp.add(0, new GBFile(pieces[i], true));
+        }
 
         // Return the path as list
         return temp;
@@ -403,7 +404,7 @@ public class GBFile {
         path = new LinkedList<>();
         String[] stringPieces = pathString.split("/");
 
-        for(int i = stringPieces.length - 1; i > 0 ;i--)
+        for(int i = 0; i < stringPieces.length - 1 ;i++)
             path.add(new GBFile(stringPieces[i], true));
 
         this.name = stringPieces[stringPieces.length - 1];
@@ -417,7 +418,10 @@ public class GBFile {
      */
     public void setAbsolutePathByString (String pathString, String prefix) {
         this.prefix = prefix;
-        setPathByString(pathString.substring(prefix.length(), pathString.length()));
+        if(prefix != null)
+            setPathByString(pathString.substring(prefix.length(), pathString.length()));
+        else
+            setPathByString(pathString);
     }
 
     /**
@@ -484,5 +488,33 @@ public class GBFile {
                 ", lastUpdateDate=" + lastUpdateDate +
                 ", mime='" + mime + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals (Object b) {
+        if (b == null)
+            return false;
+        if (b == this)
+            return true;
+        if (! (b instanceof GBFile))
+            return false;
+
+        GBFile otherFile = (GBFile) b;
+        if (otherFile.ID == this.ID)
+            return true;
+
+        if(otherFile.name != null && this.name != null && !otherFile.name.equals(this.name))
+            return false;
+
+        if(otherFile.fatherID != UNKNOWN_ID && this.fatherID != UNKNOWN_ID && otherFile.fatherID != this.fatherID)
+            return false;
+
+        if(otherFile.name != null && this.name != null && !otherFile.name.equals(this.name))
+            return false;
+
+        if(otherFile.isDirectory != this.isDirectory)
+            return false;
+
+        return true;
     }
 }
