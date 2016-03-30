@@ -3,6 +3,7 @@ package it.simonedegiacomi.goboxapi;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.security.InvalidParameterException;
 import java.util.LinkedList;
 import java.util.List;
@@ -75,11 +76,11 @@ public class GBFileTest {
         assertEquals(5, gbFile.getID());
         assertEquals(GBFile.UNKNOWN_ID, gbFile.getFatherID());
 
-        GBFile invalid = new GBFile(-1);
+        GBFile invalid = new GBFile(-5);
     }
 
     @Test
-    public void constructorStringAndIsDirectoryConstructor () {
+    public void constructorStringAndIsDirectory () {
         String dirName = "music";
         GBFile gbDir = new GBFile(dirName, true);
 
@@ -90,6 +91,17 @@ public class GBFileTest {
         GBFile gbFile = new GBFile(fileName, false);
         assertEquals(fileName, gbFile.getName());
         assertFalse(gbFile.isDirectory());
+        assertEquals(gbFile, gbFile.getPathAsList().get(0));
+
+        // Try with a path
+        GBFile b = new GBFile("music/song.mp3", false);
+
+        assertEquals("song.mp3", b.getName());
+        assertEquals("music/song.mp3", b.getPathAsString());
+
+        assertTrue(b.getPathAsList().get(0).isDirectory());
+        assertFalse(b.getPathAsList().get(1).isDirectory());
+        assertTrue(b.getPathAsList().get(1).equals(b));
     }
 
     @Test
@@ -100,6 +112,8 @@ public class GBFileTest {
         // Test the string path
         assertEquals(file.toString(), gbFile.getPathAsString());
 
+        assertEquals(file, gbFile.toFile());
+
         // Test the list path
         List<GBFile> correct = new LinkedList<>();
         correct.add(new GBFile("school", true));
@@ -109,6 +123,7 @@ public class GBFileTest {
         List<GBFile> generated = gbFile.getAbsolutePathAsList();
 
         assertTrue(correct.equals(generated));
+
     }
 
     @Test
@@ -119,6 +134,7 @@ public class GBFileTest {
 
         assertEquals(gbFile.getPrefix(), prefix);
         assertEquals("school/documents/math.doc", gbFile.getPathAsString());
+        assertEquals(file, gbFile.toFile());
 
         // Test the absolute path as list
         List<GBFile> correct = new LinkedList<>();
@@ -166,5 +182,53 @@ public class GBFileTest {
 
         GBFile c = new GBFile(f);
         assertTrue(a.equals(c));
+    }
+
+    @Test
+    public void samePrefixAndPath () {
+        String prefix = "/Volumes/gobox/";
+        String path = "/Volumes/gobox";
+        GBFile gbDir = new GBFile(new File(path), prefix);
+
+        assertEquals(path, gbDir.getAbsolutePathAsString());
+        assertEquals("", gbDir.getPathAsString());
+        assertEquals(GBFile.ROOT_FILE, gbDir);
+
+        assertEquals(new File(path), gbDir.toFile());
+
+        List<GBFile> correctAbsolute = new LinkedList<>();
+        correctAbsolute.add(new GBFile("", true)); // Root
+        correctAbsolute.add(new GBFile("Volumes", true));
+        correctAbsolute.add(new GBFile("gobox", true));
+
+        assertEquals(correctAbsolute, gbDir.getAbsolutePathAsList());
+    }
+
+    @Test
+    public void paths () {
+        String prefix = "/Volumes/HD/";
+        String relativeFilePath = "school/documents/";
+        String fileName = "test.pdf";
+        File file = new File(prefix + relativeFilePath + fileName);
+
+        GBFile gbFile = new GBFile(file, prefix);
+
+        assertEquals(file, gbFile.toFile());
+
+        GBFile b = new GBFile();
+        b.setAbsolutePathByString(prefix + relativeFilePath + fileName, prefix);
+
+        assertEquals(file, b.toFile());
+
+        GBFile c = new GBFile();
+        c.setPathByString(relativeFilePath + fileName);
+
+        assertEquals(relativeFilePath + fileName, c.getPathAsString());
+
+        c.setPrefix(prefix);
+
+        assertEquals(relativeFilePath + fileName, c.getPathAsString());
+        assertEquals(prefix + relativeFilePath + fileName, c.getAbsolutePathAsString());
+        assertEquals(file, gbFile.toFile());
     }
 }

@@ -10,10 +10,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Class used to create the logic database representation
- * of a file.
+ * Class used to create the logic database representation of a file in the gobox environment.
+ * This class can also be used with Gson to serialize an instance in json or viceversa
  *
- * Created by Degiacomi Simone onEvent 24/12/2015.
+ * @author Degiacomi Simone
+ * Created on 24/12/2015.
  */
 @DatabaseTable(tableName = "file")
 public class GBFile {
@@ -56,7 +57,7 @@ public class GBFile {
     /**
      * Prefix of the absolute path of the file
      */
-    private String prefix;
+    private transient String prefix;
 
     /**
      * Name of the file
@@ -94,37 +95,36 @@ public class GBFile {
     public GBFile () { }
 
     public GBFile (long id) {
-        if(id < 0)
-            throw new InvalidParameterException("The file id cannot be a negative value");
-
-        this.ID = id;
+        this(id, UNKNOWN_ID, null, false);
     }
 
     /**
      * Create a new GBFile starting only with the name and the type of file (file or
-     * folder). All the other fields are null
-     * @param name Name of the file
+     * folder).
+     * Using this constructor will set a null path, but if the name contains any '/', the method
+     * 'setPAthByString' will be called
+     * @param name Name or path of the file
      * @param isDirectory Type of file (folder or file)
      */
     public GBFile (String name, boolean isDirectory) {
-        this.name = name;
-        this.isDirectory = isDirectory;
+        this(UNKNOWN_ID, UNKNOWN_ID, name, isDirectory);
     }
 
     /**
-     * Create a new GBFile from a java file and a path prefix. This path prefix will
-     * be removed from the path obtained from the java file and will not be included in the path,
-     * this because the prefix doesn't make sense in the GoBox Storage. But, because you may need it,
-     * when you call the method 'toFile' you'll get the same file you pass now tot he constructor (so
-     * with the path prefix)
+     * Create a new GBFile from a java.io.File and a path prefix. This path prefix will
+     * be removed from the path obtained from the java.io.File and will not be included in the path,
+     * this because the prefix doesn't make sense in the GoBox Storage. When you'll call the toFile method,
+     * you'll get a java.io.File equals to this passed as first argument.
      * @param file Java file representation of the file
      * @param prefix Prefix to remove from the path
      */
     public GBFile (File file, String prefix) {
-        this.name = file.getName();
-        this.isDirectory = file.isDirectory();
-        this.lastUpdateDate = file.lastModified();
         setAbsolutePathByString(file.toString(), prefix);
+
+        if (file.exists()) {
+            this.isDirectory = file.isDirectory();
+            this.lastUpdateDate = file.lastModified();
+        }
     }
 
     /**
@@ -137,16 +137,13 @@ public class GBFile {
     }
 
     /**
-     * Create a new file
+     * Create a new file. This method call GBFile(String, boolean) constructor
      * @param name Name of the new file
      * @param fatherID ID of hte father of the new file
-     * @param isDirectory True if the file is a directory,
-     *                    false otherwise
+     * @param isDirectory True if the file is a directory, false otherwise
      */
     public GBFile(String name, long fatherID, boolean isDirectory) {
-        this.name = name;
-        this.fatherID = fatherID;
-        this.isDirectory = isDirectory;
+        this(UNKNOWN_ID, fatherID, name, isDirectory);
     }
 
     /**
@@ -158,9 +155,14 @@ public class GBFile {
      *                    false otherwise
      */
     public GBFile(long ID, long fatherID, String name, boolean isDirectory) {
+        if((ID < 0 && ID != UNKNOWN_ID) || (fatherID < 0 && fatherID != UNKNOWN_ID))
+            throw new InvalidParameterException("Id cannot be a negative value");
         this.ID = ID;
         this.fatherID = fatherID;
-        this.name = name;
+
+        if (name != null)
+            setName(name);
+
         this.isDirectory = isDirectory;
     }
 
@@ -225,8 +227,16 @@ public class GBFile {
         return name;
     }
 
+    /**
+     * Set the name of the file. If the name specified as parameter contains any '/' thhe method
+     * 'setPathByString' will be called
+     * @param name Name of the file
+     */
     public void setName(String name) {
-        this.name = name;
+        if (name.contains("/"))
+            setPathByString(name);
+        else
+            this.name = name;
     }
 
     /**
@@ -281,7 +291,8 @@ public class GBFile {
     }
 
     /**
-     * Return the Path as a list of 'piece'. The last piece is this file
+     * Return the Path as a list of 'piece'. If the name of this file is not null and his length is more than 0
+     * the last piece of the list is a reference to this file. This list doesn't contain the absolute prefix.
      * @return List representation of the path including this file
      */
     public List<GBFile> getPathAsList() {
@@ -293,14 +304,16 @@ public class GBFile {
             temp.addAll(path);
 
         // Add the name of this file
-        temp.add(this);
+        if(name != null && name.length() > 0)
+            temp.add(this);
 
         // Return the path as list
         return temp;
     }
 
     /**
-     * Return the Path as a list of 'piece'. The last piece is this file
+     * Return the Path as a list of 'piece'. The last piece is this file. This list also contains the absolute
+     * prefix.
      * @return List representation of the path including this file
      */
     public List<GBFile> getAbsolutePathAsList() {
@@ -318,6 +331,11 @@ public class GBFile {
         return temp;
     }
 
+    /**
+     * This method create a that represent the list of file.
+     * @param list List of file that represent the path
+     * @return String that represent the list
+     */
     private static String stringify (List<GBFile> list) {
         StringBuilder builder = new StringBuilder();
 
@@ -340,23 +358,26 @@ public class GBFile {
     }
 
     /**
-     * Return the path of the file as a string. This path contains the name of this file as last
-     * node and the specified prefix passed as argument
-     * @param prefix Prefix to add to the generated path
+     * Return the path of the file as a string. This path contains the name of this file as last node
      * @return String path of the file
      */
     public String getPathAsString () {
         return stringify(getPathAsList());
     }
 
+    /**
+     * Return the path of this file as a string. This string will contain also the absolute prefix and the
+     * name of this file at the end
+     * @return String that represents the absolute path of this file
+     */
     public String getAbsolutePathAsString () {
         return stringify(getAbsolutePathAsList());
     }
 
     /**
-     * Set the path of the file, without updating the fatherID
-     * @param pieces New path of the file. This list need to contains this file
-     *               as last node
+     * Set the path and the name of this file.
+     * NOTE that this list need to contains this file as last node
+     * @param pieces New path of the file.
      */
     public void setPathByList (List<GBFile> pieces) {
         this.path = pieces;
@@ -367,6 +388,12 @@ public class GBFile {
         this.name = myself.name;
     }
 
+    /**
+     * Set the path, the prefix and the name of this file. This list must contain the prefix, the path and
+     * a reference to this file as last element.
+     * @param pieces Path as list
+     * @param prefix Absolute prefix
+     */
     public void setAbsolutePathByList (List<GBFile> pieces, String prefix) {
         this.prefix = prefix;
 
@@ -397,11 +424,18 @@ public class GBFile {
     }
 
     /**
-     * Set the relative path to the gobox files folder
-     * @param pathString Path fo the file relative to the gobox files folder
+     * Set the relative (to the gobox files folder) path and the name of this file.
+     * NOTE that this string must contain the name of this file at the end
+     * @param pathString Path of this file
      */
     public void setPathByString (String pathString) {
         path = new LinkedList<>();
+
+        if (pathString.length() <= 0 || (pathString.length() == 1 && pathString.charAt(0) == '/') ) {
+            this.name = pathString;
+            return;
+        }
+
         String[] stringPieces = pathString.split("/");
 
         for(int i = 0; i < stringPieces.length - 1 ;i++)
@@ -411,17 +445,24 @@ public class GBFile {
     }
 
     /**
-     * Set the absolute path of the file.
+     * Set the absolute prefix, relative (to the gobox files folder) path and name of this file.
      * @param pathString Absolute path of the file
      * @param prefix Prefix to remove from the absolute path of the file to get the relative path of the
      *               gobox files folder
      */
-    public void setAbsolutePathByString (String pathString, String prefix) {
+    public void setAbsolutePathByString (String rawPathString, String prefix) {
         this.prefix = prefix;
-        if(prefix != null)
-            setPathByString(pathString.substring(prefix.length(), pathString.length()));
-        else
-            setPathByString(pathString);
+        String pathString = rawPathString;
+        if(prefix != null) {
+            if (prefix.length() >= rawPathString.length()) {
+                pathString = new String();
+                this.ID = ROOT_ID;
+            } else {
+                pathString = pathString.substring(prefix.length(), pathString.length());
+            }
+        }
+
+        setPathByString(pathString);
     }
 
     /**
