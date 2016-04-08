@@ -14,8 +14,15 @@ public class MyGsonBuilder {
 
     public static Gson create () {
         GsonBuilder builder = new GsonBuilder();
+
+        // Ignore static fields
+        builder.excludeFieldsWithModifiers(Modifier.STATIC);
+
+        // Ignore transient field
         builder.excludeFieldsWithModifiers(Modifier.TRANSIENT);
+
         builder.setLongSerializationPolicy(LongSerializationPolicy.STRING);
+
         return builder.create();
     }
 }
