@@ -32,8 +32,10 @@ import java.util.logging.Logger;
  */
 public class MyWSClient {
 
+    public static final int DEFAULT_PING_INTERVAL = 30 * 1000;
+
     /**
-     * ogger of the class
+     * Logger of the class
      */
     private static final Logger log = Logger.getLogger(MyWSClient.class.getName());
 
@@ -96,6 +98,7 @@ public class MyWSClient {
         queryResponses = new HashMap<>();
 
         server = factory.createSocket(uri);
+        server.setPingInterval(DEFAULT_PING_INTERVAL);
         server.addListener(new WebSocketAdapter() {
             @Override
             public void onTextMessage(WebSocket websocket, final String message) throws Exception {
@@ -154,8 +157,6 @@ public class MyWSClient {
                         response.addProperty("event", "queryResponse");
                         response.add("data", answer);
                         response.addProperty("_queryId", json.get("_queryId").getAsString());
-                        response.addProperty("forServer", false);
-                        response.addProperty("broadcast", false);
                         server.sendText(response.toString());
                     }
                 }).start();
@@ -210,6 +211,10 @@ public class MyWSClient {
      */
     public void connect() throws WebSocketException {
         server.connect();
+    }
+
+    public void setPingInterval (int ms) {
+        server.setPingInterval(ms);
     }
 
     /**
@@ -287,7 +292,6 @@ public class MyWSClient {
         String queryId = String.valueOf(new Random().nextInt() * System.currentTimeMillis());
         try {
             json.addProperty("event", queryName);
-            json.addProperty("forServer", false);
             json.add("data", query);
             json.addProperty("_queryId", queryId);
         } catch (Exception ex) {
@@ -327,7 +331,6 @@ public class MyWSClient {
         });
 
 
-        System.out.println("Inviato");
         // Return the new future task
         return future;
     }
@@ -337,14 +340,11 @@ public class MyWSClient {
      *
      * @param event     Name of the event
      * @param data      Data that will be sent with the event
-     * @param forServer Specify if this should be catch from the server
      */
-    public void sendEvent(String event, JsonElement data, boolean forServer) {
+    public void sendEvent(String event, JsonElement data) {
         JsonObject json = new JsonObject();
         try {
             json.addProperty("event", event);
-            json.addProperty("forServer", forServer);
-            json.addProperty("broadcast", false);
             json.add("data", data);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -362,8 +362,6 @@ public class MyWSClient {
         JsonObject json = new JsonObject();
         try {
             json.addProperty("event", event);
-            json.addProperty("forServer", false);
-            json.addProperty("broadcast", true);
             json.add("data", data);
         } catch (Exception ex) {
             ex.printStackTrace();
