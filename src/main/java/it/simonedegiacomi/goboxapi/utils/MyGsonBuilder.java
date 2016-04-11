@@ -13,6 +13,8 @@ import java.lang.reflect.Modifier;
 public class MyGsonBuilder {
 
     public static Gson create () {
+
+        // Create a new Gson Builder
         GsonBuilder builder = new GsonBuilder();
 
         // Ignore static fields
@@ -21,6 +23,7 @@ public class MyGsonBuilder {
         // Ignore transient field
         builder.excludeFieldsWithModifiers(Modifier.TRANSIENT);
 
+        // Serialize long as string
         builder.setLongSerializationPolicy(LongSerializationPolicy.STRING);
 
         return builder.create();

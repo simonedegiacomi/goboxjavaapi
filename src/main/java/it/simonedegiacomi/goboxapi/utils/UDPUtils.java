@@ -5,18 +5,30 @@ import java.net.*;
 import java.util.Enumeration;
 
 /**
- * Created by simone on 21/03/16.
+ * Created on 21/03/16.
+ * @author Degiacomi Simone
  */
 public class UDPUtils {
 
     private static DatagramSocket socket;
 
+    /**
+     * Initialize the udp socket
+     * @throws SocketException
+     */
     private static void initSocket () throws SocketException {
+
         // Create a new UDP socket
         socket = new DatagramSocket();
         socket.setBroadcast(true);
     }
 
+    /**
+     * Send a broadcast udp packet
+     * @param port Port to which send the broadcast packet
+     * @param requestBytes Message to send with the packet
+     * @throws IOException
+     */
     public static void sendBroadcastPacket(int port, byte[] requestBytes) throws IOException {
 
         // Check if is initialized
@@ -30,6 +42,7 @@ public class UDPUtils {
         // Send the request to all the network interfaces
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
         while (interfaces.hasMoreElements()) {
+
             NetworkInterface netInterface = interfaces.nextElement();
 
             if (netInterface.isLoopback())
@@ -45,7 +58,14 @@ public class UDPUtils {
         }
     }
 
+    /**
+     * Receive a udp packet. This method has a timeout of 2 seconds
+     * @return Received udp packet
+     * @throws SocketException
+     * @throws IOException
+     */
     public static DatagramPacket receive () throws SocketException, IOException{
+
         // Check if is initialized
         if(socket == null)
             initSocket();

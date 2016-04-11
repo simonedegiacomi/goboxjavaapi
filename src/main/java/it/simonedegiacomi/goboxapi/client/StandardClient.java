@@ -393,7 +393,7 @@ public class StandardClient extends Client {
     public void requestEvents(long lastHeardId) {
         JsonObject request = new JsonObject();
         request.addProperty("ID", lastHeardId);
-        server.sendEvent("getEventsList", request, false);
+        server.sendEvent("getEventsList", request);
     }
 
     @Override
@@ -432,6 +432,61 @@ public class StandardClient extends Client {
         return null;
     }
 
+    /**
+     * Request to the server the list of the recent files
+     * @param from Offset of the result list
+     * @param size Limit of the result list
+     * @return List of recent files
+     * @throws ClientException
+     */
+    @Override
+    public List<GBFile> getRecentFiles(long from, long size) throws ClientException {
+
+        // Prepare the request
+        JsonObject request = new JsonObject();
+
+        request.addProperty("from", from);
+        request.addProperty("size", size);
+
+        try {
+            JsonObject response = server.makeQuery("recent", request).get().getAsJsonObject();
+
+            // Check if there was an error
+            if(response.get("error").getAsBoolean())
+                return null;
+        } catch (InterruptedException e) {
+        } catch (ExecutionException e) {
+        }
+        return null;
+    }
+
+    /**
+     * Return the list of the trashed files
+     * @param from Offset of the result list
+     * @param size Limit of the result list
+     * @return List of the trashed files
+     * @throws ClientException
+     */
+    @Override
+    public List<GBFile> getTrashedFiles(long from, long size) throws ClientException {
+        // Prepare the request
+        JsonObject request = new JsonObject();
+
+        request.addProperty("from", from);
+        request.addProperty("size", size);
+
+        try {
+            JsonObject response = server.makeQuery("trashed", request).get().getAsJsonObject();
+
+            // Check if there was an error
+            if(response.get("error").getAsBoolean())
+                return null;
+        } catch (InterruptedException e) {
+        } catch (ExecutionException e) {
+        }
+        return null;
+    }
+
     public void shutdownSync () throws ClientException {
         if(server == null || !server.isConnected())
             throw new ClientException("Client not connected");
@@ -447,7 +502,7 @@ public class StandardClient extends Client {
     public void switchMode (ConnectionMode nextMode) throws ClientException {
         // Check if the client is connected
         if(server == null && !server.isConnected())
-            throw new ClientException("Client not connected");
+            throw new IllegalStateException("Client not connected");
 
         // Assert that is not the current mode
         if(nextMode == mode)

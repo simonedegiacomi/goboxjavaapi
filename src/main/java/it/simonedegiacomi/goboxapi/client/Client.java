@@ -110,8 +110,7 @@ public abstract class Client {
 
     /**
      * Set the listener for the SyncEvent received from the storage
-     * @param listener Listener that will called with the relative
-     *                 event
+     * @param listener Listener that will called with the relative event
      */
     public abstract void setSyncEventListener (SyncEventListener listener);
 
@@ -128,7 +127,36 @@ public abstract class Client {
      */
     public abstract void shutdown () throws ClientException;
 
-    public abstract List<GBFile> getSharedFiles() throws ClientException;
+    /**
+     * Return the list of the shared files
+     * @return List of the shared files
+     * @throws ClientException
+     */
+    public abstract List<GBFile> getSharedFiles () throws ClientException;
 
-    public abstract List<GBFile> getFilesByFilter(GBFilter filter) throws ClientException;
+    /**
+     * Make a search in the storage
+     * @param filter Filter of the query
+     * @return List of matching files
+     * @throws ClientException
+     */
+    public abstract List<GBFile> getFilesByFilter (GBFilter filter) throws ClientException;
+
+    /**
+     * Return a list of recent files
+     * @param from Offset of the result list
+     * @param size Limit of the result list
+     * @return List with the recent files
+     * @throws ClientException
+     */
+    public abstract List<GBFile> getRecentFiles (long from, long size) throws ClientException;
+
+    /**
+     * Return a list of the trashed files
+     * @param from Offset of the result list
+     * @param size Limit of the result list
+     * @return List with the trashed files
+     * @throws ClientException
+     */
+    public abstract List<GBFile> getTrashedFiles (long from, long size) throws ClientException;
 }

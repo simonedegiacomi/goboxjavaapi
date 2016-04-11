@@ -9,7 +9,8 @@ import it.simonedegiacomi.goboxapi.GBFile;
  * that contain the information about a new event made
  * from another client onEvent the storage
  *
- * Created by Degiacomi Simone onEvent 02/01/16.
+ * Created on 02/01/16.
+ * @author Degiacomi Simone
  */
 @DatabaseTable(tableName = "event")
 public class SyncEvent implements Comparable {
@@ -17,7 +18,7 @@ public class SyncEvent implements Comparable {
     /**
      * Kinds of events
      */
-    public enum EventKind { NEW_FILE, EDIT_FILE, REMOVE_FILE};
+    public enum EventKind { NEW_FILE, EDIT_FILE, REMOVE_FILE, OPEN_FILE };
 
     /**
      * ID of the event
@@ -43,6 +44,7 @@ public class SyncEvent implements Comparable {
     public SyncEvent () { }
 
     public SyncEvent(EventKind kind, GBFile relativeFile) {
+
         this.kind = kind;
         setRelativeFile(relativeFile);
     }

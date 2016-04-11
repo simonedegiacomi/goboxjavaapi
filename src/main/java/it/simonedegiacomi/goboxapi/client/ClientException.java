@@ -4,7 +4,8 @@ package it.simonedegiacomi.goboxapi.client;
  * This class is used to create the exceptions that a gobox client
  * can thrown.
  *
- * Created by Degiacomi Simone onEvent 10/01/16.
+ * Created on 10/01/16.
+ * @author Degiacomi Simone
  */
 public class ClientException extends Exception {
 

@@ -49,6 +49,12 @@ public class GBFile {
     private boolean isDirectory;
 
     /**
+     * Indicate if the file is trashed or not
+     */
+    @DatabaseField(canBeNull = false)
+    private boolean trashed = false;
+
+    /**
      * Size of the file in bytes
      */
     @DatabaseField
@@ -210,6 +216,14 @@ public class GBFile {
         return size;
     }
 
+    public boolean isTrashed() {
+        return trashed;
+    }
+
+    public void setTrashed(boolean trashed) {
+        this.trashed = trashed;
+    }
+
     /**
      * Set the size of the file. If is called, is a good idea
      * to change also the lastUpdateDate
@@ -296,12 +310,14 @@ public class GBFile {
      * @return List representation of the path including this file
      */
     public List<GBFile> getPathAsList() {
+
+        if (path == null)
+            return null;
+
         // Create the list
         LinkedList<GBFile> temp = new LinkedList<>();
 
-        // If the path is defined, add all the pieces
-        if(path != null)
-            temp.addAll(path);
+        temp.addAll(path);
 
         // Add the name of this file
         if(name != null && name.length() > 0)
@@ -319,6 +335,9 @@ public class GBFile {
     public List<GBFile> getAbsolutePathAsList() {
         // Get the relative path
         List<GBFile> temp = getPathAsList();
+
+        if (temp == null)
+            return null;
 
         if (prefix != null) {
             String[] pieces = prefix.split("/");
@@ -533,6 +552,7 @@ public class GBFile {
 
     @Override
     public boolean equals (Object b) {
+
         if (b == null)
             return false;
         if (b == this)
@@ -541,7 +561,7 @@ public class GBFile {
             return false;
 
         GBFile otherFile = (GBFile) b;
-        if (otherFile.ID == this.ID)
+        if (otherFile.ID != UNKNOWN_ID && this.ID != UNKNOWN_ID && otherFile.ID == this.ID)
             return true;
 
         if(otherFile.name != null && this.name != null && !otherFile.name.equals(this.name))

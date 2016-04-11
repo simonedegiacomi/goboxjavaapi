@@ -9,7 +9,8 @@ import com.google.gson.JsonElement;
  * This is commonly used in a server (but that is a client...
  * like the storage, a client that serve contents!)
  *
- * Created by Degiacomi Simone onEvent 30/12/2015.
+ * Created on 30/12/2015.
+ * @author Degiacomi Simone
  */
 public interface WSQueryHandler {
 

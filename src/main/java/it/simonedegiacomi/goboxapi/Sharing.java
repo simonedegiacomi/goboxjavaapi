@@ -4,7 +4,8 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 /**
- * Created by simone on 15/02/16.
+ * Created on 15/02/16.
+ * @author Degiacomi simone
  */
 @DatabaseTable(tableName = "sharing")
 public class Sharing {

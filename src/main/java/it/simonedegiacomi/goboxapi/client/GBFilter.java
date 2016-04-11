@@ -1,15 +1,35 @@
 package it.simonedegiacomi.goboxapi.client;
 
 /**
- * Created by simone on 26/03/16.
+ * Filter used to search files
+ * Created on 26/03/16.
+ * @author Degiacomi Simone
  */
 public class GBFilter {
 
+    /**
+     * Number of result to find
+     */
     public static final long DEFAULT_RESULT_SIZE = 50;
 
+    /**
+     * Offset of the result list
+     */
     private long from;
+
+    /**
+     * Length of result list
+     */
     private long size = DEFAULT_RESULT_SIZE;
+
+    /**
+     * Keyword of the query
+     */
     private String keyword;
+
+    /**
+     * Kind of file
+     */
     private String kind;
 
     public long getStart() {

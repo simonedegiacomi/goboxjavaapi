@@ -5,7 +5,8 @@ import com.google.gson.JsonElement;
 /**
  * Listener for the response ogf a query
  *
- * Created by Degiacomi Simone onEvent 31/12/2015.
+ * Created on 31/12/2015.
+ * @author Degiacomi Simone
  */
 public interface WSQueryResponseListener {
 

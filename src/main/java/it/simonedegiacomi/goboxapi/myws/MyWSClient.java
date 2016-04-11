@@ -26,9 +26,8 @@ import java.util.logging.Logger;
  * the library 'TooTallNate/Java-WebSocket'. This
  * class add some feature like event handling and query
  * concept.
- *
+ * Created on 28/12/15.
  * @author Degiacomi Simone
- *         Created on 28/12/15.
  */
 public class MyWSClient {
 
@@ -213,10 +212,6 @@ public class MyWSClient {
         server.connect();
     }
 
-    public void setPingInterval (int ms) {
-        server.setPingInterval(ms);
-    }
-
     /**
      * Add a new http header, useful to set the Authorization header
      *
@@ -386,5 +381,12 @@ public class MyWSClient {
      */
     public boolean isConnected() {
         return connected;
+    }
+
+    /**
+     * Disconnect the websocket client
+     */
+    public void disconnect () {
+        server.disconnect();
     }
 }
