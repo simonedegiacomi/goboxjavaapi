@@ -41,9 +41,9 @@ import java.util.concurrent.Phaser;
  */
 public class StandardClient extends Client {
 
-    private static final int DEFAULT_PORT = 546;
+    private static final int DEFAULT_PORT = 5406;
 
-    public enum ConnectionMode { BRIDGE_MODE, DIRECT_MODE };
+    public enum ConnectionMode { BRIDGE_MODE, DIRECT_MODE, LOCAL_DIRECT_MODE };
 
     private static final Logger log = Logger.getLogger(StandardClient.class.getName());
 
@@ -66,6 +66,11 @@ public class StandardClient extends Client {
      * Gson instance to create json objects
      */
     private final Gson gson = new MyGsonBuilder().create();
+
+    /**
+     * State of the client
+     */
+    private ClientState state = ClientState.NOT_READY;
 
     /**
      * Modality of current connection.
@@ -119,22 +124,34 @@ public class StandardClient extends Client {
      * @return
      */
     @Override
-    public boolean isOnline() {
-        return server == null ? false : server.isConnected();
+    public boolean isReady() {
+        return state == ClientState.READY;
     }
+
+    @Override
+    public ClientState getState () { return state; }
 
     /**
      * Connect to the server and to the storage. This method will block
      * the thread util the websocket connection is estabilite and the
      * storage info event received
      */
-    public void connect() throws IOException, ClientException {
+    @Override
+    public void init() throws ClientException {
 
-        if(server != null && server.isConnected())
+        if(state != ClientState.NOT_READY)
             throw new ClientException("Client already connected");
 
-        // Create the websocket client
-        server = new MyWSClient(urls.getURI("socketClient"));
+        // Change the current state
+        state = ClientState.INIT;
+
+        try {
+
+            // Create the websocket client
+            server = new MyWSClient(urls.getURI("socketClient"));
+        } catch (IOException ex) {
+            throw new ClientException(ex.toString());
+        }
 
         // Authorize the connection
         auth.authorizeWs(server);
@@ -143,6 +160,10 @@ public class StandardClient extends Client {
         server.onEvent("open", new WSEventListener() {
             @Override
             public void onEvent(JsonElement data) {
+
+                // Change current state
+                state = ClientState.READY;
+
                 // TODO: Send network info
                 if(onConnectListener != null)
                     onConnectListener.onEvent(null);
@@ -152,6 +173,11 @@ public class StandardClient extends Client {
         server.onEvent("error", new WSEventListener() {
             @Override
             public void onEvent(JsonElement data) {
+
+                // Change state
+                state = ClientState.NOT_READY;
+
+                // Call disconnect listener
                 disconnectedListener.onDisconnect();
             }
         });

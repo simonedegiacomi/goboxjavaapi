@@ -20,6 +20,9 @@ public class MyGsonBuilder {
         // Ignore static fields
         builder.excludeFieldsWithModifiers(Modifier.STATIC);
 
+        // Ignore final fields
+        builder.excludeFieldsWithModifiers(Modifier.FINAL);
+
         // Ignore transient field
         builder.excludeFieldsWithModifiers(Modifier.TRANSIENT);
 

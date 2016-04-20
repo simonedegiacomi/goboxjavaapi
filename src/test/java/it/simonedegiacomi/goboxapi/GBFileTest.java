@@ -91,7 +91,6 @@ public class GBFileTest {
         GBFile gbFile = new GBFile(fileName, false);
         assertEquals(fileName, gbFile.getName());
         assertFalse(gbFile.isDirectory());
-        assertEquals(gbFile, gbFile.getPathAsList().get(0));
 
         // Try with a path
         GBFile b = new GBFile("music/song.mp3", false);

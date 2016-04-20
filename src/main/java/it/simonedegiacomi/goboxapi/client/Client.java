@@ -15,11 +15,30 @@ import java.util.List;
 public abstract class Client {
 
     /**
-     * Check if the client is connected to the storage. It doesn't mean
-     * that it's using network, just that the client can talk with the storage
+     * Possible state of the client
+     */
+    public enum ClientState { INIT, READY, NOT_READY };
+
+    /**
+     * Check if the client is ready to perform operations. The difference between the {@link #getState()}
+     * method is that if the client is in init phase, this will return false, because the client is
+     * not ready.
      * @return Connected to the server or not
      */
-    public abstract boolean isOnline ();
+    public abstract boolean isReady ();
+
+    /**
+     * Return the current state of the client.
+     * @return
+     */
+    public abstract ClientState getState ();
+
+    public abstract void init () throws ClientException;
+
+    /**
+     * Close the connection with the storage and release all the resources.
+     */
+    public abstract void shutdown () throws ClientException;
 
     /**
      * Return a new GBFile with the info retrieved from the storage. If the file is not found
@@ -121,11 +140,6 @@ public abstract class Client {
      *                    the list
      */
     public abstract void requestEvents (long lastHeardId);
-
-    /**
-     * Close the connection with the storage and release all the resources.
-     */
-    public abstract void shutdown () throws ClientException;
 
     /**
      * Return the list of the shared files

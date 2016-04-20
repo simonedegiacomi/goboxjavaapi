@@ -8,7 +8,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Created by simone on 05/04/16.
+ * Created on 05/04/16.
+ * @author Degiacomi Simone
  */
 public class ClientTest {
 
@@ -22,7 +23,7 @@ public class ClientTest {
 
             StandardClient client = new StandardClient(auth);
 
-            client.connect();
+            client.init();
             System.out.println("Connesso");
             client.switchMode(StandardClient.ConnectionMode.DIRECT_MODE);
             System.out.println("Switced");
