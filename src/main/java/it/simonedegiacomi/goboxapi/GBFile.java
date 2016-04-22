@@ -24,7 +24,7 @@ public class GBFile {
      */
     public static final long ROOT_ID = 1;
     public static final long UNKNOWN_ID = -1;
-    public static final GBFile ROOT_FILE = new GBFile(ROOT_ID, UNKNOWN_ID, "root", true);
+    public static final GBFile ROOT_FILE = new GBFile(ROOT_ID, ROOT_ID, "root", true);
 
     /**
      * Id of the file. Is not final because when the
