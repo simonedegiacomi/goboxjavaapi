@@ -301,7 +301,9 @@ public class GBFile {
      * @return The new generated file, son of this file
      */
     public GBFile generateChild (String name, boolean isDirectory) {
-        return new GBFile(name, ID, isDirectory);
+        GBFile child = new GBFile(name, ID, isDirectory);
+        child.setPathByString(new StringBuilder(getPathAsString()).append('/').append(name).toString());
+        return child;
     }
 
     /**

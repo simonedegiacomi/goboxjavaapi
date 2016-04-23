@@ -230,4 +230,20 @@ public class GBFileTest {
         assertEquals(prefix + relativeFilePath + fileName, c.getAbsolutePathAsString());
         assertEquals(file, gbFile.toFile());
     }
+
+    @Test
+    public void generateChild () {
+        String fatherName = "/documents/";
+        GBFile father = new GBFile(fatherName, true);
+
+        String childPath = "/documents/pdf";
+        GBFile child = father.generateChild("pdf", true);
+
+        assertEquals(childPath, child.getPathAsString());
+
+        String fileChildPath = "/documents/pdf/file.pdf";
+        GBFile fileChild = child.generateChild("file.pdf", false);
+
+        assertEquals(fileChildPath, fileChild.getPathAsString());
+    }
 }
