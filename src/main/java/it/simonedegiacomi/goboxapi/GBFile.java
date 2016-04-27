@@ -20,30 +20,41 @@ import java.util.List;
 public class GBFile {
 
     /**
-     * The ID of the ROOT directory (well.. file)
+     * The ID of the root is 1
      */
     public static final long ROOT_ID = 1;
-    public static final long UNKNOWN_ID = -1;
-    public static final GBFile ROOT_FILE = new GBFile(ROOT_ID, ROOT_ID, "", true);
 
     /**
-     * Id of the file. Is not final because when the
-     * file is created the ID is not known, but we now it
-     * only when is inserted onEvent the database
+     * The fake root father ID is 0
+     */
+    public static final long ROOT_FATHER_ID = 0;
+
+    /**
+     * Any file that don't know his ID will get a negative ID (-1)
+     */
+    public static final long UNKNOWN_ID = -1;
+
+    /**
+     * Sample root file, that has 1 {@link #ROOT_ID} as ID , 0 {@link #ROOT_FATHER_ID} as father ID, is a folder and
+     * hasn't a name
+     */
+    public static final GBFile ROOT_FILE = new GBFile(ROOT_ID, ROOT_FATHER_ID, "", true);
+
+    /**
+     * Id of the file. Is not final because when the file is created the ID is not known, but we now it only when is
+     * inserted on the database. If the file doesn't know his ID, this field must be {@link #UNKNOWN_ID}.
      */
     @DatabaseField(generatedId = true, canBeNull = false)
     private long ID = UNKNOWN_ID;
 
     /**
-     * Id of the father, 0 in case that the file is in
-     * the root
+     * Id of the father, 0 {@link #ROOT_FATHER_ID} in case that the file is in the root
      */
     @DatabaseField(canBeNull = false, columnName = "father_ID")
     private long fatherID = UNKNOWN_ID;
 
     /**
-     * Indicate if the file is a 'real' file or
-     * a directory
+     * Indicate if the file is a file or a directory
      */
     @DatabaseField(canBeNull = false, columnName = "is_directory")
     private boolean isDirectory;
@@ -84,12 +95,15 @@ public class GBFile {
     private long lastUpdateDate;
 
     /**
-     * Path of the file
-     * This path doesn't contains this file as last file, because Gson doesn't like
-     * this... so i need to add the file every time the getPath method is called
+     * Path of the file.
+     * NOTE taht this path doesn't contains this file as last file, because Gson doesn't like this... so i need to add
+     * the file every time the {@link #getPathAsList()} method is called
      */
     private List<GBFile> path;
 
+    /**
+     * Type of file
+     */
     @DatabaseField(columnName = "mime", dataType = DataType.STRING)
     private String mime;
 
@@ -98,6 +112,9 @@ public class GBFile {
      */
     private List<GBFile> children;
 
+    /**
+     * Empty constructor (used by Gson)
+     */
     public GBFile () { }
 
     public GBFile (long id) {
@@ -105,10 +122,9 @@ public class GBFile {
     }
 
     /**
-     * Create a new GBFile starting only with the name and the type of file (file or
-     * folder).
-     * Using this constructor will set a null path, but if the name contains any '/', the method
-     * 'setPAthByString' will be called
+     * Create a new GBFile starting only with the name and the type of file (file or folder).
+     * Using this constructor will set a null path, but if the name contains any '/', the method {@link #setPathByString(String)}
+     * will be called
      * @param name Name or path of the file
      * @param isDirectory Type of file (folder or file)
      */
@@ -117,16 +133,17 @@ public class GBFile {
     }
 
     /**
-     * Create a new GBFile from a java.io.File and a path prefix. This path prefix will
-     * be removed from the path obtained from the java.io.File and will not be included in the path,
-     * this because the prefix doesn't make sense in the GoBox Storage. When you'll call the toFile method,
-     * you'll get a java.io.File equals to this passed as first argument.
+     * Create a new GBFile from a java.io.File and a path prefix. This path prefix will be removed from the path obtained
+     * from the java.io.File and will not be included in the path, this because the prefix doesn't make sense in the GoBox
+     * Storage.
+     * NOTE that When you'll call the {@link #toFile()} method, you'll get a new instance of java.io.File equals to this.
      * @param file Java file representation of the file
      * @param prefix Prefix to remove from the path
      */
     public GBFile (File file, String prefix) {
         setAbsolutePathByString(file.toString(), prefix);
 
+        // If the file exist, check if it's a folder
         if (file.exists()) {
             this.isDirectory = file.isDirectory();
             this.lastUpdateDate = file.lastModified();
@@ -134,8 +151,8 @@ public class GBFile {
     }
 
     /**
-     * Create a new file starting from the java representation. This method work just like
-     * the (file, prefix) and doesn't remove anything from the path, so be careful!
+     * Create a new file starting from the java representation. This method work just like the {@link #GBFile(File, String)}
+     * but doesn't remove anything from the path, so be careful
      * @param file Java representation of the file
      */
     public GBFile (File file) {
@@ -143,7 +160,7 @@ public class GBFile {
     }
 
     /**
-     * Create a new file. This method call GBFile(String, boolean) constructor
+     * Create a new file. This method call {@link #GBFile(String, boolean)} constructor
      * @param name Name of the new file
      * @param fatherID ID of hte father of the new file
      * @param isDirectory True if the file is a directory, false otherwise
@@ -157,19 +174,17 @@ public class GBFile {
      * @param name Name of the new file
      * @param fatherID ID of hte father of the new file
      * @param ID ID of the file
-     * @param isDirectory True if the file is a directory,
-     *                    false otherwise
+     * @param isDirectory True if the file is a directory, false otherwise
      */
     public GBFile(long ID, long fatherID, String name, boolean isDirectory) {
         if((ID < 0 && ID != UNKNOWN_ID) || (fatherID < 0 && fatherID != UNKNOWN_ID))
             throw new InvalidParameterException("Id cannot be a negative value");
+
         this.ID = ID;
         this.fatherID = fatherID;
-
+        this.isDirectory = isDirectory;
         if (name != null)
             setName(name);
-
-        this.isDirectory = isDirectory;
     }
 
     /**
@@ -182,8 +197,6 @@ public class GBFile {
 
     /**
      * Set the ID of the file.
-     * Only the classes inside this package, or that
-     * extends this class should edit the ID of the file
      * @param ID ID of the file
      */
     public void setID(long ID) {
@@ -192,8 +205,6 @@ public class GBFile {
 
     /**
      * Set the ID of the father.
-     * Only the classes inside this package, or that
-     * extends this class should edit the ID of the file
      * @param fatherID ID of the father
      */
     public void setFatherID(long newFatherID) {
@@ -216,17 +227,24 @@ public class GBFile {
         return size;
     }
 
+    /**
+     * Return true if the file is trashed
+     * @return true if the file is trashed
+     */
     public boolean isTrashed() {
         return trashed;
     }
 
+    /**
+     * Trash the file
+     * @param trashed Trash the fiel if true
+     */
     public void setTrashed(boolean trashed) {
         this.trashed = trashed;
     }
 
     /**
-     * Set the size of the file. If is called, is a good idea
-     * to change also the lastUpdateDate
+     * Set the size of the file. If is called, is a good idea to call also the {@link #setLastUpdateDate(long)} method
      * @param size The size of the file
      */
     public void setSize(long size) {
@@ -242,8 +260,8 @@ public class GBFile {
     }
 
     /**
-     * Set the name of the file. If the name specified as parameter contains any '/' thhe method
-     * 'setPathByString' will be called
+     * Set the name of the file. If the name specified as parameter contains any '/' the method {@link #setPathByString(String)}
+     * will be called
      * @param name Name of the file
      */
     public void setName(String name) {
@@ -301,6 +319,12 @@ public class GBFile {
      * @return The new generated file, son of this file
      */
     public GBFile generateChild (String name, boolean isDirectory) {
+
+        // Assert that this file is a folder
+        if (!this.isDirectory)
+            throw new IllegalStateException("This file is not a folder");
+
+        // Create the new child
         GBFile child = new GBFile(name, ID, isDirectory);
         child.setPathByString(new StringBuilder(getPathAsString()).append('/').append(name).toString());
         return child;
@@ -330,8 +354,7 @@ public class GBFile {
     }
 
     /**
-     * Return the Path as a list of 'piece'. The last piece is this file. This list also contains the absolute
-     * prefix.
+     * Return the Path as a list of 'piece'. The last piece is this file. This list also contains the absolute prefix.
      * @return List representation of the path including this file
      */
     public List<GBFile> getAbsolutePathAsList() {
@@ -387,8 +410,8 @@ public class GBFile {
     }
 
     /**
-     * Return the path of this file as a string. This string will contain also the absolute prefix and the
-     * name of this file at the end
+     * Return the path of this file as a string. This string will contain also the absolute prefix and the name of this
+     * file at the end
      * @return String that represents the absolute path of this file
      */
     public String getAbsolutePathAsString () {
@@ -410,8 +433,8 @@ public class GBFile {
     }
 
     /**
-     * Set the path, the prefix and the name of this file. This list must contain the prefix, the path and
-     * a reference to this file as last element.
+     * Set the path, the prefix and the name of this file. This list must contain the prefix, the path and a reference to
+     * this file as last element.
      * @param pieces Path as list
      * @param prefix Absolute prefix
      */
@@ -431,7 +454,7 @@ public class GBFile {
         if(i == pieces.size()) {
             // All the path is the file! this means that this is the root!
             this.ID = ROOT_FILE.ROOT_ID;
-            this.fatherID = ROOT_FILE.UNKNOWN_ID;
+            this.fatherID = ROOT_FILE.ROOT_FATHER_ID;
             this.isDirectory = ROOT_FILE.isDirectory;
             return;
         }
@@ -468,8 +491,7 @@ public class GBFile {
     /**
      * Set the absolute prefix, relative (to the gobox files folder) path and name of this file.
      * @param pathString Absolute path of the file
-     * @param prefix Prefix to remove from the absolute path of the file to get the relative path of the
-     *               gobox files folder
+     * @param prefix Prefix to remove from the absolute path of the file to get the relative path of the gobox files folder
      */
     public void setAbsolutePathByString (String rawPathString, String prefix) {
         this.prefix = prefix;
@@ -554,7 +576,6 @@ public class GBFile {
 
     @Override
     public boolean equals (Object b) {
-
         if (b == null)
             return false;
         if (b == this)
