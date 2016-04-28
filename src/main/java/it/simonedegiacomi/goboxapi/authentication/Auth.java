@@ -8,6 +8,8 @@ import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The object of this class contains the credentials of a GoBoxAccount.
@@ -29,6 +31,9 @@ public class Auth {
      */
     private Modality mode;
 
+    /**
+     * Username
+     */
     private String username;
 
     /**
@@ -41,10 +46,19 @@ public class Auth {
      */
     private String token;
 
+    /**
+     * Set of listeners to call when the token change
+     */
+    private final Set<Runnable> tokenListeners = new HashSet<>();
+
+    /**
+     * Empty constructor
+     */
     public Auth () { }
 
     /**
-     * Let you to set the urls
+     * Let you to set the url builder that will be used to connect to the server
+     *
      * @param builder Urls of the environment
      */
     public static void setUrlBuilder (URLBuilder builder) {
@@ -71,17 +85,17 @@ public class Auth {
             // evaluate the response
             String result = response.get("result").getAsString();
             if (result.equals("logged in")) {
-                token = response.get("token").getAsString();
+                setToken(response.get("token").getAsString());
                 return true;
             }
             return false;
         } catch (EasyHttpsException ex) {
             if(ex.getResponseCode() == 401)
                 return false;
-            throw new AuthException(ex.toString());
         } catch (IOException ex) {
             throw new AuthException(ex.toString());
         }
+        return false;
     }
 
     /**
@@ -97,16 +111,16 @@ public class Auth {
             JsonObject response = (JsonObject) EasyHttps.post(urls.get("authCheck"), null, token);
             if(!response.get("state").getAsString().equals("valid"))
                 return false;
-            token = response.get("newOne").getAsString();
+            setToken(response.get("newOne").getAsString());
             return true;
         } catch (EasyHttpsException ex) {
             if(ex.getResponseCode() == 401)
                 return false;
-            throw new AuthException("Check failed");
         } catch (Exception ex) {
             ex.printStackTrace();
             throw new AuthException("Check failed");
         }
+        return false;
     }
 
     public Modality getMode() {
@@ -125,8 +139,14 @@ public class Auth {
         return token;
     }
 
+    /**
+     * Set the token and call all the listeners
+     * @param token New token
+     */
     public void setToken(String token) {
         this.token = token;
+        for (Runnable listener : tokenListeners)
+            listener.run();
     }
 
     public String getUsername() {
@@ -155,5 +175,14 @@ public class Auth {
      */
     private String getHeaderToken () {
         return "Bearer " + token;
+    }
+
+    /**
+     * Add a new listener that will be called when the auth token change. You can you this to update your
+     * account information
+     * @param listener Listener to call when the token change
+     */
+    private void addOnTokenChangeListener (Runnable listener) {
+        tokenListeners.add(listener);
     }
 }
