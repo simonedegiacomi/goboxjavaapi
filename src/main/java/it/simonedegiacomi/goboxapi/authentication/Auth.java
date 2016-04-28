@@ -182,7 +182,7 @@ public class Auth {
      * account information
      * @param listener Listener to call when the token change
      */
-    private void addOnTokenChangeListener (Runnable listener) {
+    public void addOnTokenChangeListener (Runnable listener) {
         tokenListeners.add(listener);
     }
 }
