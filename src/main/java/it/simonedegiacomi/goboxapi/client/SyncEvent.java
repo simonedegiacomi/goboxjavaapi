@@ -1,5 +1,6 @@
 package it.simonedegiacomi.goboxapi.client;
 
+import com.google.gson.annotations.Expose;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import it.simonedegiacomi.goboxapi.GBFile;
@@ -24,21 +25,25 @@ public class SyncEvent implements Comparable {
      * ID of the event
      */
     @DatabaseField(generatedId = true, canBeNull = false)
+    @Expose
     private long ID;
 
     /**
      * Kind of this event
      */
     @DatabaseField(canBeNull = false)
+    @Expose
     private EventKind kind;
 
     /**
      * File associated with this event
      */
     @DatabaseField(foreign = true)
+    @Expose
     private GBFile file;
 
     @DatabaseField
+    @Expose
     private long date;
 
     public SyncEvent () { }

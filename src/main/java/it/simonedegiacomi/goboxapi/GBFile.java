@@ -1,5 +1,6 @@
 package it.simonedegiacomi.goboxapi;
 
+import com.google.gson.annotations.Expose;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -22,53 +23,58 @@ public class GBFile {
     /**
      * The ID of the root is 1
      */
-    public static final long ROOT_ID = 1;
+    public transient static final long ROOT_ID = 1;
 
     /**
      * The fake root father ID is 0
      */
-    public static final long ROOT_FATHER_ID = 0;
+    public transient static final long ROOT_FATHER_ID = 0;
 
     /**
      * Any file that don't know his ID will get a negative ID (-1)
      */
-    public static final long UNKNOWN_ID = -1;
+    public transient static final long UNKNOWN_ID = -1;
 
     /**
      * Sample root file, that has 1 {@link #ROOT_ID} as ID , 0 {@link #ROOT_FATHER_ID} as father ID, is a folder and
      * hasn't a name
      */
-    public static final GBFile ROOT_FILE = new GBFile(ROOT_ID, ROOT_FATHER_ID, "", true);
+    public transient static final GBFile ROOT_FILE = new GBFile(ROOT_ID, ROOT_FATHER_ID, "", true);
 
     /**
      * Id of the file. Is not final because when the file is created the ID is not known, but we now it only when is
      * inserted on the database. If the file doesn't know his ID, this field must be {@link #UNKNOWN_ID}.
      */
     @DatabaseField(generatedId = true, canBeNull = false)
+    @Expose
     private long ID = UNKNOWN_ID;
 
     /**
      * Id of the father, 0 {@link #ROOT_FATHER_ID} in case that the file is in the root
      */
     @DatabaseField(canBeNull = false, columnName = "father_ID")
+    @Expose
     private long fatherID = UNKNOWN_ID;
 
     /**
      * Indicate if the file is a file or a directory
      */
     @DatabaseField(canBeNull = false, columnName = "is_directory")
+    @Expose
     private boolean isDirectory;
 
     /**
      * Indicate if the file is trashed or not
      */
     @DatabaseField(canBeNull = false)
+    @Expose
     private boolean trashed = false;
 
     /**
      * Size of the file in bytes
      */
     @DatabaseField
+    @Expose
     private long size;
 
     /**
@@ -80,36 +86,42 @@ public class GBFile {
      * Name of the file
      */
     @DatabaseField(canBeNull = false)
+    @Expose
     private String name;
 
     /**
      * Date of the creation of this file
      */
     @DatabaseField(columnName = "creation")
+    @Expose
     private long creationDate;
 
     /**
      * Date of the last update of this file
      */
     @DatabaseField(columnName = "last_update")
+    @Expose
     private long lastUpdateDate;
 
     /**
      * Path of the file.
-     * NOTE taht this path doesn't contains this file as last file, because Gson doesn't like this... so i need to add
+     * NOTE that this path doesn't contains this file as last file, because Gson doesn't like this... so i need to add
      * the file every time the {@link #getPathAsList()} method is called
      */
+    @Expose
     private List<GBFile> path;
 
     /**
      * Type of file
      */
     @DatabaseField(columnName = "mime", dataType = DataType.STRING)
+    @Expose
     private String mime;
 
     /**
      * List of children of this file
      */
+    @Expose
     private List<GBFile> children;
 
     /**
@@ -327,6 +339,7 @@ public class GBFile {
         // Create the new child
         GBFile child = new GBFile(name, ID, isDirectory);
         child.setPathByString(new StringBuilder(getPathAsString()).append('/').append(name).toString());
+        child.setPrefix(prefix);
         return child;
     }
 
@@ -336,13 +349,11 @@ public class GBFile {
      * @return List representation of the path including this file
      */
     public List<GBFile> getPathAsList() {
-
         if (path == null)
             return null;
 
-        // Create the list
+        // Create and initialize the list
         LinkedList<GBFile> temp = new LinkedList<>();
-
         temp.addAll(path);
 
         // Add the name of this file

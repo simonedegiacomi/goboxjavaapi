@@ -1,5 +1,6 @@
 package it.simonedegiacomi.goboxapi;
 
+import com.google.gson.annotations.Expose;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -11,9 +12,11 @@ import com.j256.ormlite.table.DatabaseTable;
 public class Sharing {
 
     @DatabaseField(columnName = "ID", generatedId = true, canBeNull = false)
+    @Expose
     private long id;
 
     @DatabaseField(foreign = true)
+    @Expose
     private GBFile file;
 
     public Sharing () {

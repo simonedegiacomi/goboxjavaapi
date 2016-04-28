@@ -1,5 +1,6 @@
 package it.simonedegiacomi.goboxapi.utils;
 
+import com.google.gson.ExclusionStrategy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
@@ -17,17 +18,7 @@ public class MyGsonBuilder {
         // Create a new Gson Builder
         GsonBuilder builder = new GsonBuilder();
 
-        // Ignore static fields
-        builder.excludeFieldsWithModifiers(Modifier.STATIC);
-
-        // Ignore final fields
-        builder.excludeFieldsWithModifiers(Modifier.FINAL);
-
-        // Ignore transient field
-        builder.excludeFieldsWithModifiers(Modifier.TRANSIENT);
-
-        // Serialize long as string
-        builder.setLongSerializationPolicy(LongSerializationPolicy.STRING);
+        builder.excludeFieldsWithoutExposeAnnotation();
 
         return builder.create();
     }
