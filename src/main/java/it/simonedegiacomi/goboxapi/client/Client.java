@@ -59,8 +59,7 @@ public abstract class Client {
      * passed as argument. If the file doesn't exist a new exception is thrown. Int his case an exception
      * because you're supposing that the file exist
      * @param file File to retrieve.
-     * @throws ClientException Exception thrown in case of
-     * invalid id, network error or io error while saving the
+     * @throws ClientException Exception thrown in case of invalid id, network error or io error while saving the
      * file to the disk
      */
     public void getFile (GBFile file) throws ClientException, IOException {
@@ -103,29 +102,30 @@ public abstract class Client {
     }
 
     /**
-     * Remove a file from the storage
+     * Move a file from/to the trash
+     * @param file File to move
+     * @param toTrash True to move the file in the trash, false otherwise
+     * @throws ClientException
+     */
+    public abstract void trashFile (GBFile file, boolean toTrash) throws ClientException;
+
+    /**
+     * Move a file to/from the trash using {@link #isTrashed} method. This method is an alias for
+     * {@link #trashFile(GBFile, boolean)}
+     * @param file file
+     * @throws ClientException
+     */
+    public void trashFile (GBFile file) throws ClientException {
+        trashFile(file, file.isTrashed());
+    }
+
+
+    /**
+     * Remove a file from the storage, even if it's not in the trash
      * @param file File to remove
      * @throws ClientException Exception thrown if the id is not valid
      */
     public abstract void removeFile (GBFile file) throws ClientException;
-
-    /**
-     * Update a file in the storage.
-     * PS: If the information of the file are changed
-     * update only that information, otherwise resend
-     * the file
-     * @param file File to update
-     */
-    public abstract void updateFile (GBFile file, InputStream stream) throws ClientException;
-
-    /**
-     * Update a file in the storage. The same as update,
-     * but the stream is obtained from the file
-     * @param file File to update
-     */
-    public void updateFile (GBFile file) throws ClientException, IOException {
-        updateFile(file, new FileInputStream(file.toFile()));
-    }
 
     /**
      * Set the listener for the SyncEvent received from the storage
@@ -149,6 +149,14 @@ public abstract class Client {
     public abstract List<GBFile> getSharedFiles () throws ClientException;
 
     /**
+     * Share o stop sharing a file
+     * @param file File to share
+     * @param share True to share, false to stop sharing
+     * @throws ClientException
+     */
+    public abstract void share (GBFile file, boolean share) throws ClientException;
+
+    /**
      * Make a search in the storage
      * @param filter Filter of the query
      * @return List of matching files
@@ -167,10 +175,14 @@ public abstract class Client {
 
     /**
      * Return a list of the trashed files
-     * @param from Offset of the result list
-     * @param size Limit of the result list
      * @return List with the trashed files
      * @throws ClientException
      */
-    public abstract List<GBFile> getTrashedFiles (long from, long size) throws ClientException;
+    public abstract List<GBFile> getTrashedFiles () throws ClientException;
+
+    /**
+     * Empty the trash
+     * @throws ClientException
+     */
+    public abstract void emptyTrash () throws ClientException;
 }

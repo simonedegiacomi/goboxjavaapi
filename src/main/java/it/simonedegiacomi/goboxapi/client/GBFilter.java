@@ -64,5 +64,4 @@ public class GBFilter {
         this.kind = kind;
     }
 
-
 }

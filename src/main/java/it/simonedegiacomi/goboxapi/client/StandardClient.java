@@ -11,15 +11,19 @@ import it.simonedegiacomi.goboxapi.GBFile;
 import it.simonedegiacomi.goboxapi.authentication.Auth;
 import it.simonedegiacomi.goboxapi.myws.MyWSClient;
 import it.simonedegiacomi.goboxapi.myws.WSEventListener;
-import it.simonedegiacomi.goboxapi.myws.WSQueryResponseListener;
-import it.simonedegiacomi.goboxapi.utils.*;
+import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
+import it.simonedegiacomi.goboxapi.utils.UDPUtils;
+import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 import org.apache.log4j.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.ProtocolException;
+import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -135,7 +139,6 @@ public class StandardClient extends Client {
      */
     @Override
     public void init() throws ClientException {
-
         if(state != ClientState.NOT_READY)
             throw new ClientException("Client already connected");
 
@@ -241,9 +244,9 @@ public class StandardClient extends Client {
             conn.disconnect();
             dst.close();
 
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             works.arriveAndDeregister();
-            log.warn(ex.toString());
+            log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
         works.arriveAndDeregister();
@@ -262,11 +265,13 @@ public class StandardClient extends Client {
             // Ignore the events from the server related to this file
             eventsToIgnore.add(newDir.getPathAsString());
             FutureTask<JsonElement> future = server.makeQuery("createFolder", gson.toJsonTree(newDir, GBFile.class));
-            JsonObject response = (JsonObject) future.get();
+            JsonObject response = future.get().getAsJsonObject();
             newDir.setID(response.get("newFolderId").getAsLong());
         } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
     }
@@ -292,7 +297,7 @@ public class StandardClient extends Client {
             request.addProperty("findPath", true);
             request.addProperty("findChildren", true);
 
-            JsonObject response = (JsonObject) server.makeQuery("info", request).get();
+            JsonObject response = server.makeQuery("info", request).get().getAsJsonObject();
             boolean found = response.get("found").getAsBoolean();
             if (!found)
                 return null;
@@ -301,9 +306,10 @@ public class StandardClient extends Client {
             cache.add(detailedFile);
             return detailedFile;
         } catch (InterruptedException ex) {
-            ex.printStackTrace();
+            log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
     }
@@ -347,6 +353,29 @@ public class StandardClient extends Client {
             conn.disconnect();
             stream.close();
         } catch (ProtocolException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        }
+    }
+
+    @Override
+    public void trashFile(GBFile file, boolean toTrash) throws ClientException {
+
+        // Prepare the request
+        JsonObject request = new JsonObject();
+        request.addProperty("toTrash", toTrash);
+        request.add("file", gson.toJsonTree(file, GBFile.class));
+
+        try {
+            JsonObject response = server.makeQuery("trashFile", request).get().getAsJsonObject();
+            if (!response.get("success").getAsBoolean()) {
+                throw new ClientException(response.get("error").getAsString());
+            }
+        } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
     }
@@ -362,21 +391,17 @@ public class StandardClient extends Client {
         eventsToIgnore.add(file.getPathAsString());
         // Make the request trough handlers socket
         try {
-            server.makeQuery("removeFile", gson.toJsonTree(file), new WSQueryResponseListener() {
-                @Override
-                public void onResponse(JsonElement response) {
-                    log.info("File deletion response: " + response.toString());
-                }
-            });
-        } catch (Exception ex) {
-            log.warn(ex.toString());
+            JsonObject res = server.makeQuery("removeFile", gson.toJsonTree(file, GBFile.class)).get().getAsJsonObject();
+            if (!res.get("success").getAsBoolean()) {
+                throw new ClientException(res.get("error").getAsString());
+            }
+        } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
-    }
-
-    @Override
-    public void updateFile(GBFile file, InputStream file2) {
-
     }
 
     /**
@@ -439,6 +464,25 @@ public class StandardClient extends Client {
     }
 
     @Override
+    public void share(GBFile file, boolean share) throws ClientException {
+        JsonObject request = new JsonObject();
+        request.addProperty("share", share);
+        request.addProperty("ID", file.getID());
+        try {
+            JsonObject res = server.makeQuery("share", request).get().getAsJsonObject();
+            if (!res.get("success").getAsBoolean()) {
+                throw new ClientException(res.get("error").getAsString());
+            }
+        } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        }
+    }
+
+    @Override
     public List<GBFile> getFilesByFilter(GBFilter filter) throws ClientException {
 
         JsonElement request = gson.toJsonTree(filter, GBFilter.class);
@@ -485,31 +529,43 @@ public class StandardClient extends Client {
 
     /**
      * Return the list of the trashed files
-     * @param from Offset of the result list
-     * @param size Limit of the result list
      * @return List of the trashed files
      * @throws ClientException
      */
     @Override
-    public List<GBFile> getTrashedFiles(long from, long size) throws ClientException {
-        // Prepare the request
-        JsonObject request = new JsonObject();
-
-        request.addProperty("from", from);
-        request.addProperty("size", size);
-
+    public List<GBFile> getTrashedFiles() throws ClientException {
         try {
-            JsonObject response = server.makeQuery("trashed", request).get().getAsJsonObject();
+            JsonObject response = server.makeQuery("trashed", new JsonObject()).get().getAsJsonObject();
 
             // Check if there was an error
-            if(response.get("error").getAsBoolean())
-                return null;
-        } catch (InterruptedException e) {
-        } catch (ExecutionException e) {
+            if(response.get("success").getAsBoolean())
+                throw new ClientException(response.get("error").getAsString());
+        } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
         }
         return null;
     }
 
+    @Override
+    public void emptyTrash() throws ClientException {
+        try {
+            JsonObject res = server.makeQuery("emptyTrash", new JsonObject()).get().getAsJsonObject();
+            if (!res.get("success").getAsBoolean()) {
+                throw new ClientException(res.get("error").getAsString());
+            }
+        } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
+        } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
+        }
+    }
+
+
+    // TODO: remove this method
     public void shutdownSync () throws ClientException {
         if(server == null || !server.isConnected())
             throw new ClientException("Client not connected");

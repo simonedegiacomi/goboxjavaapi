@@ -1,11 +1,7 @@
 package it.simonedegiacomi.goboxapi.utils;
 
-import com.google.gson.ExclusionStrategy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.LongSerializationPolicy;
-
-import java.lang.reflect.Modifier;
 
 /**
  * @author Degiacomi Simone
