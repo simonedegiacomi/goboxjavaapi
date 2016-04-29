@@ -19,10 +19,7 @@ import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.DatagramPacket;
-import java.net.ProtocolException;
-import java.net.SocketTimeoutException;
-import java.net.URL;
+import java.net.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -528,7 +525,7 @@ public class StandardClient extends Client {
     public void switchMode (ConnectionMode nextMode) throws ClientException {
         // Check if the client is connected
         if(server == null && !server.isConnected())
-            throw new IllegalStateException("Client not connected");
+            throw new IllegalStateException("client not connected");
 
         // Assert that is not the current mode
         if(nextMode == mode)
@@ -536,10 +533,13 @@ public class StandardClient extends Client {
 
         switch (nextMode) {
             case BRIDGE_MODE:
-                // Just change the flag
+
+                // Just change the flag to return in bridge mode
                 this.mode = ConnectionMode.BRIDGE_MODE;
                 break;
+
             case DIRECT_MODE:
+
                 // Call the right method
                 switchToDirectMode();
                 return;
@@ -555,15 +555,18 @@ public class StandardClient extends Client {
      * @throws ClientException Exception during the switch
      */
     private boolean switchToDirectMode () throws ClientException {
-
-        // IP of the server for the direct connection
-        URL ip = null;
-
-        /**
-         * First attempt with the local network
-         */
         try {
+            URL ip = null;
 
+            // Ask the storage if this modality is available
+            JsonObject response = server.makeQuery("directLogin", null).get().getAsJsonObject();
+
+            // Get the ip
+            String publicIp = response.get("publicIP").getAsString();
+            String port = response.get("port").getAsString();
+            ip = new URL("https://" + publicIp + ':' + port);
+
+            // Try with the local mode
             // Prepare the request packet
             String requestString = "GOBOX_DIRECT_" + auth.getUsername();
             byte[] requestBytes = requestString.getBytes();
@@ -571,63 +574,35 @@ public class StandardClient extends Client {
             // Send the request trough UDP
             UDPUtils.sendBroadcastPacket(DEFAULT_PORT, requestBytes);
 
+            boolean local = false;
+
+            // Try to receive the response
             try {
-                DatagramPacket response = UDPUtils.receive();
+                DatagramPacket udpResponse = UDPUtils.receive();
 
                 // ok, some response ...
-                String data = response.getData().toString().trim();
+                String data = udpResponse.getData().toString().trim();
                 if (data.startsWith("GOBOX_DIRECT_PORT")) {
-                    int port = Integer.parseInt(data.split(":")[1]);
-                    ip = new URL("https://" + response.getAddress().toString() + ':' + port);
+                    ip = new URL("https://" + udpResponse.getAddress().toString() + ':' + port);
                 }
-
-
             } catch (SocketTimeoutException ex) {
-                // no response... try with the internet...
+                // No response or some error, fallback with bridge
+                log.info("direct local connection failed");
             }
 
+            // Make the switch
+            HttpsURLConnection conn = (HttpsURLConnection) ip.openConnection();
+            int code = conn.getResponseCode();
+            conn.disconnect();
 
+            if (code != 200)
+                return false;
+
+            mode = local ? ConnectionMode.DIRECT_MODE : ConnectionMode.LOCAL_DIRECT_MODE;
+
+            return true;
         } catch (Exception ex) {
-            // try with the internet...
-        }
-
-        if(ip == null) {
-            /**
-             * Direct connection trough internet
-             */
-            try {
-
-                // Ask the storage if this modaliity is available
-                JsonObject response = server.makeQuery("directLogin", null).get().getAsJsonObject();
-
-                // Try the internet connection
-                String publicIp = response.get("publicIP").getAsString();
-                String port = response.get("port").getAsString();
-                ip = new URL("https://" + publicIp + ':' + port);
-
-            } catch (Exception ex) {
-                throw new ClientException("Switch failed");
-            }
-        }
-
-        try {
-            /**
-             * Make the https request
-             */
-            JsonObject request = new JsonObject();
-            JsonObject response = (JsonObject) EasyHttps.post(ip, request, null);
-
-            boolean success = response.get("success").getAsBoolean();
-
-            if (success) {
-                mode = ConnectionMode.DIRECT_MODE;
-                return true;
-            }
-
-        } catch (EasyHttpsException ex) {
-
-        } catch (IOException ex) {
-
+            log.info(ex.toString(), ex);
         }
         return false;
     }

@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import com.neovisionaries.ws.client.*;
 import it.simonedegiacomi.goboxapi.myws.annotations.WSEvent;
 import it.simonedegiacomi.goboxapi.myws.annotations.WSQuery;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.lang.annotation.IncompleteAnnotationException;
@@ -18,8 +19,6 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * This is an implementation of handlers socket based onEvent
@@ -113,7 +112,7 @@ public class MyWSClient {
                         // is an simple event
                         if (!json.has("_queryId") || json.get("_queryId").getAsString().length() <= 0) {
                             if (!events.containsKey(event)) {
-                                log.warning("Received unknown event: " + event);
+                                log.warn("Received unknown event: " + event);
                                 return;
                             }
 
@@ -131,7 +130,7 @@ public class MyWSClient {
                         if (event.equals("queryResponse")) {
 
                             if (!queryResponses.containsKey(queryId)) {
-                                log.warning("Unknown query response received");
+                                log.warn("Unknown query response received");
                                 return;
                             }
 
@@ -144,18 +143,25 @@ public class MyWSClient {
                         // find the object that will answer this query.
 
                         if (!queryAnswers.containsKey(event)) {
-                            log.warning("Unknown query received: " + event);
+                            log.warn("Unknown query received: " + event);
                             return;
                         }
 
-                        JsonElement answer = queryAnswers.get(event).onQuery(json.get("data"));
-
-                        // When the answer is retrieve, sendEvent back with the same
-                        // queryId
+                        // Prepare the response with teh same query Id
                         JsonObject response = new JsonObject();
                         response.addProperty("event", "queryResponse");
-                        response.add("data", answer);
                         response.addProperty("_queryId", json.get("_queryId").getAsString());
+
+                        // Call the handler
+                        try {
+                            JsonElement answer = queryAnswers.get(event).onQuery(json.get("data"));
+                            response.add("data", answer);
+                        } catch (Exception ex) {
+                            log.warn("WS Query Handler Exception: " + ex.toString());
+                            JsonObject errorAnswer = new JsonObject();
+                            errorAnswer.addProperty("error", ex.toString());
+                            response.add("data", errorAnswer);
+                        }
                         server.sendText(response.toString());
                     }
                 }).start();
@@ -290,7 +296,7 @@ public class MyWSClient {
             json.add("data", query);
             json.addProperty("_queryId", queryId);
         } catch (Exception ex) {
-            log.log(Level.WARNING, ex.toString(), ex);
+            log.warn(ex.toString(), ex);
         }
         queryResponses.put(queryId, responseListener);
         server.sendText(json.toString());
@@ -361,7 +367,7 @@ public class MyWSClient {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        log.fine("New broadcast message sent");
+        log.info("New broadcast message sent");
         server.sendText(json.toString());
     }
 

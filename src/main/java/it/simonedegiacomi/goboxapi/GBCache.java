@@ -3,7 +3,8 @@ package it.simonedegiacomi.goboxapi;
 import java.util.HashMap;
 
 /**
- * Created by simone on 18/02/16.
+ * Created on 18/02/16.
+ * @author Degiacomi Simone
  */
 public class GBCache {
     private final HashMap<Long, GBFile> cacheById = new HashMap<>();
@@ -31,6 +32,8 @@ public class GBCache {
     public GBFile get (GBFile poorFile) {
         if(poorFile.getID() != GBFile.UNKNOWN_ID && cacheById.containsKey(poorFile.getID()))
             return cacheById.get(poorFile.getID());
-        return cacheByPath.get(poorFile.getPathAsString());
+        if (poorFile.getPathAsList() != null)
+            return cacheByPath.get(poorFile.getPathAsString());
+        return null;
     }
 }
