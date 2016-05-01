@@ -194,6 +194,8 @@ public class StandardClient extends Client {
                         return;
                     }
                     log.info("Storage not connected");
+                    state = ClientState.NOT_READY;
+
                     if (disconnectedListener != null)
                         disconnectedListener.onDisconnect();
 
