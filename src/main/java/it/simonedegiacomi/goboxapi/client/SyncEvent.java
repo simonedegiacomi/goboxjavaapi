@@ -19,7 +19,14 @@ public class SyncEvent implements Comparable {
     /**
      * Kinds of events
      */
-    public enum EventKind { NEW_FILE, EDIT_FILE, REMOVE_FILE, OPEN_FILE };
+    public enum EventKind {
+        NEW_FILE,
+        EDIT_FILE,
+        TRASH_FILE,
+        RECOVER_FILE,
+        REMOVE_FILE,
+        OPEN_FILE
+    };
 
     /**
      * ID of the event

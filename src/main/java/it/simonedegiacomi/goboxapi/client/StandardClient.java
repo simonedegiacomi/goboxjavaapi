@@ -88,6 +88,14 @@ public class StandardClient extends Client {
      */
     private final GBCache cache = new GBCache();
 
+    /**
+     * Set of sync event listeners
+     */
+    private final Set<SyncEventListener> listeners = new HashSet<>();
+
+    /**
+     * Listener for the disconnection
+     */
     private DisconnectedListener disconnectedListener;
 
     private Phaser works = new Phaser();
@@ -189,18 +197,20 @@ public class StandardClient extends Client {
 
                         // Change current state
                         state = ClientState.READY;
-
+                        registerSyncEventListener();
                         readyCountDown.countDown();
                         return;
                     }
                     log.info("Storage not connected");
                     state = ClientState.NOT_READY;
 
+                    if (readyCountDown.getCount() > 0) {
+                        readyCountDown.countDown();
+                        return;
+                    }
+
                     if (disconnectedListener != null)
                         disconnectedListener.onDisconnect();
-
-                    if (readyCountDown.getCount() > 0)
-                        readyCountDown.countDown();
                 }
             });
 
@@ -216,6 +226,27 @@ public class StandardClient extends Client {
         } catch (InterruptedException ex) {
             throw new ClientException("Storage event info not received");
         }
+    }
+
+    private void registerSyncEventListener () {
+        // Add a new listener onEvent the handlers socket
+        server.onEvent("syncEvent", new WSEventListener() {
+            @Override
+            public void onEvent(JsonElement data) {
+
+                // Wrap the data in a new SyncEvent
+                SyncEvent event = gson.fromJson(data, SyncEvent.class);
+
+                // Check if this is the notification for a event that i've generated.
+                if (eventsToIgnore.remove(event.getRelativeFile().getPathAsString()))
+                    // Because i've generated this event, i ignore it
+                    return;
+
+                // And call all the listeners
+                for (SyncEventListener listener : listeners)
+                    listener.on(event);
+            }
+        });
     }
 
     /**
@@ -411,36 +442,17 @@ public class StandardClient extends Client {
     }
 
     /**
-     * Set the listener for the event from the storage.
-     * Id another listener is already set, the listener
-     * will be replaced
+     * Add the listener for the event from the storage.
      *
      * @param listener Listener that will called with the relative
      */
-    public void setSyncEventListener(final SyncEventListener listener) {
+    public void addSyncEventListener(final SyncEventListener listener) {
+        listeners.add(listener);
+    }
 
-        // If the listener passed is null, remove the old listener
-        // (or do nothing if was never set)
-        if (listener == null)
-            server.removeListener("syncEvent");
-
-        // Add a new listener onEvent the handlers socket
-        server.onEvent("syncEvent", new WSEventListener() {
-            @Override
-            public void onEvent(JsonElement data) {
-
-                // Wrap the data in a new SyncEvent
-                SyncEvent event = gson.fromJson(data, SyncEvent.class);
-
-                // Check if this is the notification for a event that i've generated.
-                if (eventsToIgnore.remove(event.getRelativeFile().getPathAsString()))
-                    // Because i've generated this event, i ignore it
-                    return;
-
-                // And call the listener
-                listener.on(event);
-            }
-        });
+    @Override
+    public void removeSyncEventListener(SyncEventListener listener) {
+        listeners.remove(listener);
     }
 
     @Override
@@ -454,6 +466,8 @@ public class StandardClient extends Client {
     public void shutdown() throws ClientException {
         if(server == null || !server.isConnected())
             throw new ClientException("Client not connected");
+        server.disconnect();
+        this.state = ClientState.NOT_READY;
     }
 
     @Override

@@ -133,10 +133,16 @@ public abstract class Client {
     public abstract void removeFile (GBFile file) throws ClientException;
 
     /**
-     * Set the listener for the SyncEvent received from the storage
+     * Add the listener for the SyncEvent received from the storage
      * @param listener Listener that will called with the relative event
      */
-    public abstract void setSyncEventListener (SyncEventListener listener);
+    public abstract void addSyncEventListener (SyncEventListener listener);
+
+    /**
+     * Remove the specified sync event listener
+     * @param listener Listener to remove
+     */
+    public abstract void removeSyncEventListener (SyncEventListener listener);
 
     /**
      * Talk to the storage and tell to it the last ID of the event that
