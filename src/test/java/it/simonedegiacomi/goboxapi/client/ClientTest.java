@@ -1,9 +1,17 @@
 package it.simonedegiacomi.goboxapi.client;
 
+import com.google.gson.JsonElement;
+import it.simonedegiacomi.goboxapi.GBFile;
 import it.simonedegiacomi.goboxapi.authentication.Auth;
+import it.simonedegiacomi.goboxapi.authentication.AuthException;
+import it.simonedegiacomi.goboxapi.myws.WSEventListener;
+import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 import org.junit.Test;
 import org.junit.internal.ExactComparisonCriteria;
 
+import java.io.IOException;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -13,22 +21,33 @@ import static org.junit.Assert.fail;
  */
 public class ClientTest {
 
+
     @Test
-    public void localDirectConnection () {
-        try {
-            Auth auth = new Auth();
+    public void simpleConnection () throws ClientException, AuthException, IOException {
 
-            auth.setUsername("prova");
-            assertTrue(auth.login("prova"));
+        URLBuilder urls = new URLBuilder();
+        urls.load();
+        Auth.setUrlBuilder(urls);
+        StandardClient.setUrlBuilder(urls);
 
-            StandardClient client = new StandardClient(auth);
+        Auth auth = new Auth();
 
-            client.init();
-            System.out.println("Connesso");
-            client.switchMode(StandardClient.ConnectionMode.DIRECT_MODE);
-            System.out.println("Switced");
-        } catch (Exception ex) {
-            fail();
-        }
+        auth.setUsername("prova");
+        assertTrue(auth.login("prova"));
+
+        StandardClient client = new StandardClient(auth);
+        client.onDisconnect(new StandardClient.DisconnectedListener() {
+            @Override
+            public void onDisconnect() {
+                System.out.println("Disconnected");
+            }
+        });
+
+        assertTrue(client.init());
+
+        GBFile fromStorage = client.getInfo(GBFile.ROOT_FILE);
+
+        assertEquals(GBFile.ROOT_FILE, fromStorage);
+
     }
 }

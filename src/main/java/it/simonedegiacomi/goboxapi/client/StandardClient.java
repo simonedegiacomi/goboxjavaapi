@@ -138,7 +138,7 @@ public class StandardClient extends Client {
      * storage info event received
      */
     @Override
-    public void init() throws ClientException {
+    public boolean init() throws ClientException {
         if(state != ClientState.NOT_READY)
             throw new ClientException("Client already connected");
 
@@ -161,12 +161,7 @@ public class StandardClient extends Client {
             @Override
             public void onEvent(JsonElement data) {
 
-                // Change current state
-                state = ClientState.READY;
-
-                // TODO: Send network info
-                if(onConnectListener != null)
-                    onConnectListener.onEvent(null);
+                log.info("Websocket connected");
             }
         });
 
@@ -188,9 +183,22 @@ public class StandardClient extends Client {
             server.onEvent("storageInfo", new WSEventListener() {
                 @Override
                 public void onEvent(JsonElement data) {
-                    // Remove the storage info listener
-                    server.removeListener("storageInfo");
-                    readyCountDown.countDown();
+
+                    if (data.getAsJsonObject().get("connected").getAsBoolean()) {
+                        log.info("Storage connected");
+
+                        // Change current state
+                        state = ClientState.READY;
+
+                        readyCountDown.countDown();
+                        return;
+                    }
+                    log.info("Storage not connected");
+                    if (disconnectedListener != null)
+                        disconnectedListener.onDisconnect();
+
+                    if (readyCountDown.getCount() > 0)
+                        readyCountDown.countDown();
                 }
             });
 
@@ -198,18 +206,14 @@ public class StandardClient extends Client {
             server.connect();
 
             readyCountDown.await();
+
+            return isReady();
         } catch (WebSocketException ex) {
             ex.printStackTrace();
             throw new ClientException(ex.toString());
         } catch (InterruptedException ex) {
             throw new ClientException("Storage event info not received");
         }
-    }
-
-    private WSEventListener onConnectListener;
-
-    public void setOnConnectListener (WSEventListener listener) {
-        this.onConnectListener = listener;
     }
 
     /**
@@ -456,11 +460,12 @@ public class StandardClient extends Client {
             JsonObject response = server.makeQuery("getSharedFiles", new JsonObject()).get().getAsJsonObject();
             return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
         } catch (InterruptedException ex) {
-
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
         } catch (ExecutionException ex) {
-
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
         }
-        return null;
     }
 
     @Override
@@ -484,19 +489,19 @@ public class StandardClient extends Client {
 
     @Override
     public List<GBFile> getFilesByFilter(GBFilter filter) throws ClientException {
-
         JsonElement request = gson.toJsonTree(filter, GBFilter.class);
         try {
             JsonObject response = server.makeQuery("search", request).get().getAsJsonObject();
-            if(response.get("error").getAsBoolean())
-                return null;
+            if(response.get("success").getAsBoolean())
+                throw new ClientException(response.get("error").getAsString());
             return gson.fromJson(response.get("result"), new TypeToken<List<GBFile>>(){}.getType());
         } catch (InterruptedException ex) {
-
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
         } catch (ExecutionException ex) {
-
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
         }
-        return null;
     }
 
     /**
@@ -519,12 +524,17 @@ public class StandardClient extends Client {
             JsonObject response = server.makeQuery("recent", request).get().getAsJsonObject();
 
             // Check if there was an error
-            if(response.get("error").getAsBoolean())
-                return null;
-        } catch (InterruptedException e) {
-        } catch (ExecutionException e) {
+            if(response.get("success").getAsBoolean())
+                throw new ClientException(response.get("error").getAsString());
+
+            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
+        } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
         }
-        return null;
     }
 
     /**
@@ -540,6 +550,8 @@ public class StandardClient extends Client {
             // Check if there was an error
             if(response.get("success").getAsBoolean())
                 throw new ClientException(response.get("error").getAsString());
+
+            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
         } catch (InterruptedException ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
@@ -547,7 +559,6 @@ public class StandardClient extends Client {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
-        return null;
     }
 
     @Override
@@ -561,6 +572,27 @@ public class StandardClient extends Client {
             log.warn(ex.toString(), ex);
         } catch (ExecutionException ex) {
             log.warn(ex.toString(), ex);
+        }
+    }
+
+    @Override
+    public void rename(GBFile file, String newName) throws ClientException {
+
+        // Prepare the request
+        JsonObject request = new JsonObject();
+        request.addProperty("newName", newName);
+        request.add("file", gson.toJsonTree(file, GBFile.class));
+        try {
+            JsonObject res = server.makeQuery("rename", request).get().getAsJsonObject();
+            if (!res.get("success").getAsBoolean()) {
+                throw new ClientException(res.get("error").getAsString());
+            }
+        } catch (InterruptedException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        } catch (ExecutionException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
         }
     }
 

@@ -33,7 +33,12 @@ public abstract class Client {
      */
     public abstract ClientState getState ();
 
-    public abstract void init () throws ClientException;
+    /**
+     * Init the client
+     * @return True if the client in now ready
+     * @throws ClientException
+     */
+    public abstract boolean init () throws ClientException;
 
     /**
      * Close the connection with the storage and release all the resources.
@@ -185,4 +190,12 @@ public abstract class Client {
      * @throws ClientException
      */
     public abstract void emptyTrash () throws ClientException;
+
+    /**
+     * Change the name of the file
+     * @param file File whit the old name
+     * @param newName New name of the file
+     * @throws ClientException
+     */
+    public abstract void rename (GBFile file, String newName) throws ClientException;
 }
