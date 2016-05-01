@@ -1,8 +1,10 @@
 package it.simonedegiacomi.goboxapi.client;
 
+import com.google.gson.JsonElement;
 import it.simonedegiacomi.goboxapi.GBFile;
 
 import java.io.*;
+import java.net.URL;
 import java.util.List;
 
 /**
@@ -58,6 +60,14 @@ public abstract class Client {
      * the storage
      */
     public abstract GBFile getInfo(GBFile file) throws ClientException;
+
+    /**
+     * Return the url for the specified action with the specified parameters
+     * @param action Action
+     * @param params Parameters to add in the url
+     * @return Result url
+     */
+    public abstract URL getUrl (TransferUrlUtils.Action action, JsonElement params);
 
     /**
      * Retrieve the file from the storage and save it to the file position saved inside the GBFile

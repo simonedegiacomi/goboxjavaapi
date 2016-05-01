@@ -4,7 +4,9 @@ import com.google.common.io.ByteStreams;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 import com.neovisionaries.ws.client.WebSocketException;
 import it.simonedegiacomi.goboxapi.GBCache;
 import it.simonedegiacomi.goboxapi.GBFile;
@@ -16,14 +18,18 @@ import it.simonedegiacomi.goboxapi.utils.UDPUtils;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 import org.apache.log4j.Logger;
 
-import javax.net.ssl.HttpsURLConnection;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.DatagramPacket;
-import java.net.ProtocolException;
-import java.net.SocketTimeoutException;
-import java.net.URL;
+import javax.net.SocketFactory;
+import javax.net.ssl.*;
+import java.io.*;
+import java.net.*;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -98,6 +104,17 @@ public class StandardClient extends Client {
      */
     private DisconnectedListener disconnectedListener;
 
+    /**
+     * Socket factory to use for the direct connection
+     */
+    private SSLSocketFactory sslSocketFactory;
+
+    private HostnameVerifier hostnameVerifier;
+
+    private String directAuth;
+
+    private TransferUrlUtils transferUrl;
+
     private Phaser works = new Phaser();
 
     public static void setUrlBuilder (URLBuilder builder) {
@@ -111,6 +128,7 @@ public class StandardClient extends Client {
      */
     public StandardClient(final Auth auth) {
         this.auth = auth;
+        this.transferUrl = new TransferUrlUtils(urls);
     }
 
     /**
@@ -249,6 +267,11 @@ public class StandardClient extends Client {
         });
     }
 
+    @Override
+    public URL getUrl(TransferUrlUtils.Action action, JsonElement params) {
+        return transferUrl.getUrl(action, params);
+    }
+
     /**
      * Download a file from the storage copying the file to the output stream.
      * When the download is complete the stream is closed.
@@ -265,11 +288,11 @@ public class StandardClient extends Client {
             JsonObject request = new JsonObject();
             request.addProperty("ID", file.getID());
 
-            URL url = urls.get("getFile", request);
+            URL url = getUrl(TransferUrlUtils.Action.DOWNLOAD, request);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
 
-            // Authorize the connection
-            auth.authorize(conn);
+            // Prepare the connection
+            prepareRequest(conn);
 
             InputStream fromServer = conn.getInputStream();
 
@@ -287,6 +310,65 @@ public class StandardClient extends Client {
             throw new ClientException(ex.toString());
         }
         works.arriveAndDeregister();
+    }
+
+    /**
+     * Upload the file to the server reading his content from the input stream passed as
+     * argument. This method also ignore the generated event sent by the storage to the other
+     * clients.
+     *
+     * @param file   File to send File to send. The object must have or the field father id or the path.
+     * @param stream Stream of the file Stream that will be sent to the storage
+     * @throws ClientException
+     */
+    @Override
+    public void uploadFile(GBFile file, InputStream stream) throws ClientException, IOException {
+        try {
+            eventsToIgnore.add(file.getPathAsString());
+
+            // Get the url to upload the file
+            URL url = transferUrl.getUrl(TransferUrlUtils.Action.UPLOAD, gson.toJsonTree(file, GBFile.class), true);
+
+            // Create a new https connection
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+
+            // Prepare the connection
+            prepareRequest(conn);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Length", String.valueOf(file.getSize()));
+
+            OutputStream toStorage = conn.getOutputStream();
+            // Send the file
+            ByteStreams.copy(stream, toStorage);
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                throw new ClientException("Response code of the upload: " + responseCode);
+            }
+
+            // Close the http connection
+            toStorage.close();
+            conn.disconnect();
+            stream.close();
+        } catch (ProtocolException ex) {
+            log.warn(ex.toString(), ex);
+            throw new ClientException(ex.toString());
+        }
+    }
+
+    /**
+     * Authorize, set the ssl socket factory and set the hostname verifier
+     * @param conn Connection to prepare
+     */
+    private void prepareRequest (HttpsURLConnection conn) {
+        if (mode == ConnectionMode.BRIDGE_MODE) {
+            auth.authorize(conn);
+            return;
+        }
+        conn.setSSLSocketFactory(sslSocketFactory);
+        conn.setHostnameVerifier(hostnameVerifier);
+        conn.addRequestProperty("Authorization", directAuth);
     }
 
     /**
@@ -346,50 +428,6 @@ public class StandardClient extends Client {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         } catch (ExecutionException ex) {
-            log.warn(ex.toString(), ex);
-            throw new ClientException(ex.toString());
-        }
-    }
-
-    /**
-     * Upload the file to the server reading his content from the input stream passed as
-     * argument. This method also ignore the generated event sent by the storage to the other
-     * clients.
-     *
-     * @param file   File to send File to send. The object must have or the field father id or the path.
-     * @param stream Stream of the file Stream that will be sent to the storage
-     * @throws ClientException
-     */
-    @Override
-    public void uploadFile(GBFile file, InputStream stream) throws ClientException, IOException {
-        try {
-            eventsToIgnore.add(file.getPathAsString());
-
-            // Get the url to upload the file
-            URL url = urls.get("uploadFile", gson.toJsonTree(file), true);
-
-            // Create a new https connection
-            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-            conn.setDoInput(true);
-            conn.setDoOutput(true);
-            // Authorize it
-            auth.authorize(conn);
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Length", String.valueOf(file.getSize()));
-
-            OutputStream toStorage = conn.getOutputStream();
-            // Send the file
-            ByteStreams.copy(stream, toStorage);
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                throw new ClientException("Response code of the upload: " + responseCode);
-            }
-
-            // Close the http connection
-            toStorage.close();
-            conn.disconnect();
-            stream.close();
-        } catch (ProtocolException ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
@@ -473,7 +511,7 @@ public class StandardClient extends Client {
     @Override
     public List<GBFile> getSharedFiles() throws ClientException {
         try {
-            JsonObject response = server.makeQuery("getSharedFiles", new JsonObject()).get().getAsJsonObject();
+            JsonObject response = server.makeQuery("getSharedFiles", null).get().getAsJsonObject();
             return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
         } catch (InterruptedException ex) {
             log.warn(ex.toString(), ex);
@@ -561,7 +599,7 @@ public class StandardClient extends Client {
     @Override
     public List<GBFile> getTrashedFiles() throws ClientException {
         try {
-            JsonObject response = server.makeQuery("trashed", new JsonObject()).get().getAsJsonObject();
+            JsonObject response = server.makeQuery("trashed", null).get().getAsJsonObject();
 
             // Check if there was an error
             if(response.get("success").getAsBoolean())
@@ -580,7 +618,7 @@ public class StandardClient extends Client {
     @Override
     public void emptyTrash() throws ClientException {
         try {
-            JsonObject res = server.makeQuery("emptyTrash", new JsonObject()).get().getAsJsonObject();
+            JsonObject res = server.makeQuery("emptyTrash", null).get().getAsJsonObject();
             if (!res.get("success").getAsBoolean()) {
                 throw new ClientException(res.get("error").getAsString());
             }
@@ -612,21 +650,14 @@ public class StandardClient extends Client {
         }
     }
 
-
-    // TODO: remove this method
-    public void shutdownSync () throws ClientException {
-        if(server == null || !server.isConnected())
-            throw new ClientException("Client not connected");
-        works.arriveAndAwaitAdvance();
-    }
-
     /**
      * Try to switch to the selected mode. This method will block the thread.
      * If you try to switch to the current mode, nothing happen.
      * @param nextMode Next mode to switch
-     * @throws ClientException
+     * @throws ClientException Switch failed
      */
     public void switchMode (ConnectionMode nextMode) throws ClientException {
+
         // Check if the client is connected
         if(server == null && !server.isConnected())
             throw new IllegalStateException("client not connected");
@@ -635,79 +666,104 @@ public class StandardClient extends Client {
         if(nextMode == mode)
             return;
 
-        switch (nextMode) {
-            case BRIDGE_MODE:
-
-                // Just change the flag to return in bridge mode
-                this.mode = ConnectionMode.BRIDGE_MODE;
-                break;
-
-            case DIRECT_MODE:
-
-                // Call the right method
-                switchToDirectMode();
-                return;
+        if(nextMode == ConnectionMode.BRIDGE_MODE) {
+            try {
+                transferUrl.setMode(mode, null);
+            } catch (MalformedURLException ex) { new RuntimeException(ex);}
+            this.mode = ConnectionMode.BRIDGE_MODE;
+            log.info("Switched to bridge mode");
+            return;
         }
-    }
 
-    /**
-     * Switch to direct mode. First attempt with the local connection, sending
-     * a UDP packet, then fallback to internet direct connection. If the switch happens
-     * true is return, otherwise false or a new exception will be thrown.
-     * This method will block the thread until the switch is completed
-     * @return True if the switch happen
-     * @throws ClientException Exception during the switch
-     */
-    private boolean switchToDirectMode () throws ClientException {
         try {
-            URL ip = null;
-
             // Ask the storage if this modality is available
             JsonObject response = server.makeQuery("directLogin", null).get().getAsJsonObject();
 
             // Get the ip
-            String publicIp = response.get("publicIP").getAsString();
+            String ip = nextMode == ConnectionMode.LOCAL_DIRECT_MODE ? response.get("localIP").getAsString() : response.get("publicIP").getAsString();
             String port = response.get("port").getAsString();
-            ip = new URL("https://" + publicIp + ':' + port);
+            URL base = new URL("https://" + ip + ':' + port + '/');
+            URL login = new URL(base + "directLogin");
 
-            // Try with the local mode
-            // Prepare the request packet
-            String requestString = "GOBOX_DIRECT_" + auth.getUsername();
-            byte[] requestBytes = requestString.getBytes();
+            // Get the certificate from the query response
+            CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+            byte[] encodedCertificate = gson.fromJson(response.get("certificate"), new TypeToken<byte[]>(){}.getType());
+            InputStream inCertificate = new ByteArrayInputStream(encodedCertificate);
+            X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(inCertificate);
 
-            // Send the request trough UDP
-            UDPUtils.sendBroadcastPacket(DEFAULT_PORT, requestBytes);
+            // Create a new ssl socket factory that accepts the storage certificate
+            sslSocketFactory = createTrustedSocketFactory(certificate);
 
-            boolean local = false;
-
-            // Try to receive the response
-            try {
-                DatagramPacket udpResponse = UDPUtils.receive();
-
-                // ok, some response ...
-                String data = udpResponse.getData().toString().trim();
-                if (data.startsWith("GOBOX_DIRECT_PORT")) {
-                    ip = new URL("https://" + udpResponse.getAddress().toString() + ':' + port);
+            // Try to call the storage to authenticate
+            HttpsURLConnection conn = (HttpsURLConnection) login.openConnection();
+            conn.setSSLSocketFactory(sslSocketFactory);
+            hostnameVerifier = new HostnameVerifier() {
+                @Override
+                public boolean verify(String s, SSLSession sslSession) {
+                    return true;
                 }
-            } catch (SocketTimeoutException ex) {
-                // No response or some error, fallback with bridge
-                log.info("direct local connection failed");
+            };
+            conn.setHostnameVerifier(hostnameVerifier);
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+
+            // Create the auth object
+            JsonObject json = new JsonObject();
+            json.addProperty("temporaryToken", response.get("temporaryToken").getAsString());
+            json.addProperty("cookie", false);
+
+            // Send the auth
+            conn.getOutputStream().write(json.toString().getBytes());
+
+            // Make the request
+            if (conn.getResponseCode() != 200) {
+                throw new ClientException("Switch failed.");
             }
 
-            // Make the switch
-            HttpsURLConnection conn = (HttpsURLConnection) ip.openConnection();
-            int code = conn.getResponseCode();
+            // Read the response
+            JsonObject loginRes = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
+            directAuth = loginRes.get("token").getAsString();
+
+            // Close the http connection
             conn.disconnect();
 
-            if (code != 200)
-                return false;
-
-            mode = local ? ConnectionMode.DIRECT_MODE : ConnectionMode.LOCAL_DIRECT_MODE;
-
-            return true;
+            // Change flag mode
+            transferUrl.setMode(mode, base.toString());
+            mode = nextMode;
+            log.info("Switched to: " + base);
         } catch (Exception ex) {
-            log.info(ex.toString(), ex);
+            log.warn(ex.toString(), ex);
+            throw new ClientException("Switch failed");
         }
-        return false;
+    }
+
+    /**
+     * Create a new ssl socket factory for accept the specified self signed certificate
+     * @param c Self signed certificate to accept
+     * @return SSL Socket Factory that accepts the specified self signed certificate
+     * @throws KeyStoreException cannot instantiate keystore
+     * @throws CertificateException Invalid certificate
+     * @throws NoSuchAlgorithmException
+     * @throws IOException
+     * @throws KeyManagementException
+     */
+    private static SSLSocketFactory createTrustedSocketFactory (Certificate c) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, KeyManagementException {
+
+        // Init key store and add the certificate
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("GoBoxDirect", c);
+
+        // Create a new trust manager with this keystore
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keyStore);
+
+        // Create the new ssl context that accept all the certificates in the new key store
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+
+        // Return the socket factory
+        return sslContext.getSocketFactory();
     }
 }

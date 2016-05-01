@@ -98,28 +98,20 @@ public class URLBuilder {
         }
     }
 
-    private StringBuilder baseDownloadUrl (GBFile file) {
-        return new StringBuilder()
-                .append(getAsString("getFile"))
-                .append("?ID=")
-                .append(file.getID());
+    /**
+     * Add a new url
+     * @param key Name of the url
+     * @param url Url
+     */
+    public void addUrl (String key, URL url) {
+        properties.put(key, url);
     }
 
-    public String getFileUrlAsString (GBFile file) {
-        return baseDownloadUrl(file ).toString();
-    }
-
-    public String getPreviewAsString (GBFile file) {
-        return baseDownloadUrl(file)
-                .append("&preview=true")
-                .toString();
-    }
-
-    public URL getFileUrl (GBFile file) {
-        try {
-            return new URL(getFileUrlAsString(file));
-        } catch (MalformedURLException ex) {
-            return null;
-        }
+    /**
+     * Remove the specified url
+     * @param key Url to remove
+     */
+    public void removeUrl (String key) {
+        properties.remove(key);
     }
 }

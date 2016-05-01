@@ -6,6 +6,8 @@ import it.simonedegiacomi.goboxapi.authentication.Auth;
 import it.simonedegiacomi.goboxapi.authentication.AuthException;
 import it.simonedegiacomi.goboxapi.myws.WSEventListener;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
+import org.apache.log4j.varia.NullAppender;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.internal.ExactComparisonCriteria;
 
@@ -21,6 +23,14 @@ import static org.junit.Assert.fail;
  */
 public class ClientTest {
 
+    private static final String USERNAME = "prova";
+    private static final String PASSWORD = "prova";
+
+    @Before
+    public void init () {
+        org.apache.log4j.BasicConfigurator.configure();
+    }
+
 
     @Test
     public void simpleConnection () throws ClientException, AuthException, IOException {
@@ -32,8 +42,8 @@ public class ClientTest {
 
         Auth auth = new Auth();
 
-        auth.setUsername("prova");
-        assertTrue(auth.login("prova"));
+        auth.setUsername(USERNAME);
+        assertTrue(auth.login(PASSWORD));
 
         StandardClient client = new StandardClient(auth);
         client.onDisconnect(new StandardClient.DisconnectedListener() {
@@ -48,6 +58,33 @@ public class ClientTest {
         GBFile fromStorage = client.getInfo(GBFile.ROOT_FILE);
 
         assertEquals(GBFile.ROOT_FILE, fromStorage);
+
+    }
+
+    @Test
+    public void directLocal () throws ClientException, AuthException, IOException {
+        URLBuilder urls = new URLBuilder();
+        urls.load();
+        Auth.setUrlBuilder(urls);
+        StandardClient.setUrlBuilder(urls);
+
+        Auth auth = new Auth();
+
+        auth.setUsername(USERNAME);
+        assertTrue(auth.login(PASSWORD));
+
+        StandardClient client = new StandardClient(auth);
+        client.onDisconnect(new StandardClient.DisconnectedListener() {
+            @Override
+            public void onDisconnect() {
+                System.out.println("Disconnected");
+            }
+        });
+
+        assertTrue(client.init());
+
+        client.switchMode(StandardClient.ConnectionMode.LOCAL_DIRECT_MODE);
+
 
     }
 }
