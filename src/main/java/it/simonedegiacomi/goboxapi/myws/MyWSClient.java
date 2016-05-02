@@ -191,7 +191,7 @@ public class MyWSClient {
             public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame, boolean closedByServer) {
                 connected = false;
                 WSEventListener errorListener = events.get("close");
-                if (connected && errorListener != null)
+                if (errorListener != null)
                     errorListener.onEvent(null);
             }
         });
