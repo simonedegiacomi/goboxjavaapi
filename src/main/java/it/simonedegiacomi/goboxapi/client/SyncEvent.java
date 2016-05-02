@@ -6,8 +6,7 @@ import com.j256.ormlite.table.DatabaseTable;
 import it.simonedegiacomi.goboxapi.GBFile;
 
 /**
- * This class is used to create the SyncEvent object
- * that contain the information about a new event made
+ * This class is used to create the SyncEvent object that contain the information about a new event made
  * from another client onEvent the storage
  *
  * Created on 02/01/16.
@@ -22,13 +21,15 @@ public class SyncEvent implements Comparable {
     public enum EventKind {
         NEW_FILE,
         EDIT_FILE,
+        COPY_FILE,
+        CUT_FILE,
         TRASH_FILE,
         RECOVER_FILE,
         REMOVE_FILE,
         OPEN_FILE,
         SHARE_FILE,
         UNSHARE_FILE
-    };
+    }
 
     /**
      * ID of the event
@@ -45,11 +46,16 @@ public class SyncEvent implements Comparable {
     private EventKind kind;
 
     /**
-     * File associated with this event
+     * File associated with this event.
      */
     @DatabaseField(foreign = true)
     @Expose
     private GBFile file;
+
+    /**
+     * If the event affected the file, this is the old configuration of the file
+     */
+    private GBFile before;
 
     @DatabaseField
     @Expose
@@ -58,7 +64,6 @@ public class SyncEvent implements Comparable {
     public SyncEvent () { }
 
     public SyncEvent(EventKind kind, GBFile relativeFile) {
-
         this.kind = kind;
         setRelativeFile(relativeFile);
     }
@@ -102,6 +107,10 @@ public class SyncEvent implements Comparable {
     public void setDate(long date) {
         this.date = date;
     }
+
+    public GBFile getBefore () { return before; }
+
+    public void setBefore (GBFile before) { this.before = before; }
 
     @Override
     public int compareTo(Object o) {
