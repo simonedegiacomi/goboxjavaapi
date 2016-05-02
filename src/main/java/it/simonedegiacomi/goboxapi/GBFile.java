@@ -39,7 +39,7 @@ public class GBFile {
      * Sample root file, that has 1 {@link #ROOT_ID} as ID , 0 {@link #ROOT_FATHER_ID} as father ID, is a folder and
      * hasn't a name
      */
-    public transient static final GBFile ROOT_FILE = new GBFile(ROOT_ID, ROOT_FATHER_ID, "root", true);
+    public transient static final GBFile ROOT_FILE = new GBFile(ROOT_ID, ROOT_FATHER_ID, "", true);
 
     /**
      * Id of the file. Is not final because when the file is created the ID is not known, but we now it only when is
