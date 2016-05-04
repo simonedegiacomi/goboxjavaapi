@@ -14,18 +14,15 @@ import it.simonedegiacomi.goboxapi.authentication.Auth;
 import it.simonedegiacomi.goboxapi.myws.MyWSClient;
 import it.simonedegiacomi.goboxapi.myws.WSEventListener;
 import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
-import it.simonedegiacomi.goboxapi.utils.UDPUtils;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 import org.apache.log4j.Logger;
 
-import javax.net.SocketFactory;
 import javax.net.ssl.*;
 import java.io.*;
-import java.net.*;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -39,20 +36,20 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.Phaser;
 
 /**
- * This is an implementation of the gobox api client interface. This
- * client uses WebSocket to transfer the file list, to authenticate
- * and to share events and use HTTP(s) to transfer the files.
+ * This is an implementation of the gobox api client interface. This client uses WebSocket to transfer the file list,
+ * to authenticate and to share events and use HTTP(s) to transfer the files.
  *
  * @author Degiacomi Simone
  * Created on 31/12/2015.
  */
 public class StandardClient extends Client {
 
-    private static final int DEFAULT_PORT = 5406;
-
     public enum ConnectionMode { BRIDGE_MODE, DIRECT_MODE, LOCAL_DIRECT_MODE };
 
-    private static final Logger log = Logger.getLogger(StandardClient.class.getName());
+    /**
+     * Logger of the class
+     */
+    private static final Logger log = Logger.getLogger(StandardClient.class);
 
     /**
      * Object used to create the urls.
@@ -109,8 +106,14 @@ public class StandardClient extends Client {
      */
     private SSLSocketFactory sslSocketFactory;
 
+    /**
+     * Hostname verified used for the direct connection
+     */
     private HostnameVerifier hostnameVerifier;
 
+    /**
+     * Direct connection auth token
+     */
     private String directAuth;
 
     private TransferUrlUtils transferUrl;
@@ -194,6 +197,20 @@ public class StandardClient extends Client {
         server.onEvent("error", new WSEventListener() {
             @Override
             public void onEvent(JsonElement data) {
+                log.info("websocket error");
+
+                // Change state
+                state = ClientState.NOT_READY;
+
+                // Call disconnect listener
+                disconnectedListener.onDisconnect();
+            }
+        });
+
+        server.onEvent("close", new WSEventListener() {
+            @Override
+            public void onEvent(JsonElement data) {
+                log.info("websocket closed");
 
                 // Change state
                 state = ClientState.NOT_READY;
@@ -215,6 +232,7 @@ public class StandardClient extends Client {
 
                         // Change current state
                         state = ClientState.READY;
+                        mode = ConnectionMode.DIRECT_MODE;
                         registerSyncEventListener();
                         readyCountDown.countDown();
                         return;
@@ -274,7 +292,8 @@ public class StandardClient extends Client {
 
     /**
      * Download a file from the storage copying the file to the output stream.
-     * When the download is complete the stream is closed.
+     * If you call this method with a file that is a folder, you'll get a compressed version of the folder
+     * This method close the destination stream
      *
      * @param file File to download.
      * @param dst  Output stream where put the content of the file.
@@ -304,12 +323,13 @@ public class StandardClient extends Client {
             conn.disconnect();
             dst.close();
 
+            works.arriveAndDeregister();
         } catch (IOException ex) {
             works.arriveAndDeregister();
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
-        works.arriveAndDeregister();
+
     }
 
     /**
@@ -323,6 +343,8 @@ public class StandardClient extends Client {
      */
     @Override
     public void uploadFile(GBFile file, InputStream stream) throws ClientException, IOException {
+        if (file.isDirectory())
+            throw new InvalidParameterException("this file is a folder");
         try {
             eventsToIgnore.add(file.getPathAsString());
 

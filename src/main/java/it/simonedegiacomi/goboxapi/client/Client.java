@@ -71,15 +71,23 @@ public abstract class Client {
 
     /**
      * Retrieve the file from the storage and save it to the file position saved inside the GBFile
-     * passed as argument. If the file doesn't exist a new exception is thrown. Int his case an exception
-     * because you're supposing that the file exist
+     * passed as argument. If the file doesn't exist a new exception is thrown.
+     * This method automatically create needed directory to store the file, calling the mkdirs java File method.
      * @param file File to retrieve.
      * @throws ClientException Exception thrown in case of invalid id, network error or io error while saving the
      * file to the disk
      */
     public void getFile (GBFile file) throws ClientException, IOException {
+
+        // Create the necessary directories
+        String filePath = file.getPathAsString();
+        File father = new File(filePath.substring(0, filePath.lastIndexOf("/")));
+        father.mkdirs();
+
+        // Then download the file
         getFile(file, new FileOutputStream(file.toFile()));
     }
+
 
     /**
      * Same as getFile(GBFile) but let you specify the output stream that will be used to write the incoming file
@@ -92,7 +100,7 @@ public abstract class Client {
     public abstract void getFile (GBFile file, OutputStream dst) throws ClientException, IOException;
 
     /**
-     * Create a new directory
+     * Create a new directory in the Storage
      * @param newDir Directory to create
      * @throws ClientException thrown if a folder with the same name exist or other reason of the storage
      */
