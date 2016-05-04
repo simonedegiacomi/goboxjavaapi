@@ -1,22 +1,24 @@
 package it.simonedegiacomi.goboxapi.authentication;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import it.simonedegiacomi.goboxapi.myws.MyWSClient;
-import it.simonedegiacomi.goboxapi.utils.EasyHttps;
-import it.simonedegiacomi.goboxapi.utils.EasyHttpsException;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 
+import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * The object of this class contains the credentials of a GoBoxAccount.
- * To use any of the API of this package you need this object. Auth also
- * provides the necessary methods to talk with the server to check the data.
- *
+ * The object of this class contains the credentials of a GoBoxAccount. To use any of the API of this package you need
+ * this object. Auth also provides the necessary methods to talk with the server to check the data.
+ * <p>
  * Created on 31/12/15.
+ *
  * @author Degiacomi Simone
  */
 public class Auth {
@@ -24,7 +26,9 @@ public class Auth {
     /**
      * Type of session: client or storage mode
      */
-    public enum Modality { CLIENT, STORAGE }
+    public enum Modality {
+        CLIENT, STORAGE
+    }
 
     /**
      * The current mode
@@ -54,73 +58,84 @@ public class Auth {
     /**
      * Empty constructor
      */
-    public Auth () { }
+    public Auth() {
+    }
 
     /**
      * Let you to set the url builder that will be used to connect to the server
      *
      * @param builder Urls of the environment
      */
-    public static void setUrlBuilder (URLBuilder builder) {
+    public static void setUrlBuilder(URLBuilder builder) {
         urls = builder;
     }
 
     /**
-     * Try to login with the information set. This method will block the thread until
-     * the login is complete.
+     * Try to login with the information set. This method will block the thread until the login is complete.
+     *
      * @return true if the user is logged, false if the credentials aren't valid
-     * @throws AuthException Exception thrown if there is some network or strange error
-     * but not when the credentials aren't valid
+     * @throws IOException Network error
      */
-    public boolean login (String password) throws AuthException {
-        try {
-            // Get the json of the authentication
-            JsonObject authJson = new JsonObject();
-            authJson.addProperty("username", username);
-            authJson.addProperty("password", password);
-            authJson.addProperty("type", mode == Modality.CLIENT ? 'C' : 'S');
+    public boolean login(String password) throws IOException {
 
-            // Make the https request
-            JsonObject response = (JsonObject) EasyHttps.post(urls.get("login"), authJson, null);
-            // evaluate the response
-            String result = response.get("result").getAsString();
-            if (result.equals("logged in")) {
-                setToken(response.get("token").getAsString());
-                return true;
-            }
+        // Create the json of the authentication
+        JsonObject authJson = new JsonObject();
+        authJson.addProperty("username", username);
+        authJson.addProperty("password", password);
+        authJson.addProperty("type", mode == Modality.CLIENT ? 'C' : 'S');
+
+        // Make the https request
+        HttpsURLConnection conn = (HttpsURLConnection) urls.get("login").openConnection();
+        conn.setDoOutput(true);
+        conn.setDoInput(true);
+        conn.getOutputStream().write(authJson.toString().getBytes());
+
+        // Read the response
+        int responseCode = conn.getResponseCode();
+        JsonObject response = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
+
+        if (responseCode != 200 || !response.get("result").getAsString().equals("logged in")) {
             return false;
-        } catch (EasyHttpsException ex) {
-            if(ex.getResponseCode() == 401)
-                return false;
-        } catch (IOException ex) {
-            throw new AuthException(ex.toString());
         }
-        return false;
+        // evaluate the response
+        String result = response.get("result").getAsString();
+
+        // Set the token
+        setToken(response.get("token").getAsString());
+        return true;
     }
 
     /**
-     * Check if the token of the object is valid. This method block the thread until
-     * the response from the server is retrieved.
+     * Check if the token of the object is valid. This method block the thread until the response from the server is retrieved.
+     *
      * @return true if the token is valid, false otherwise
-     * @throws AuthException Network errors
+     * @throws IOException Network errors
      */
-    public boolean check() throws AuthException {
+    public boolean check() throws IOException {
         if (token == null)
-            throw new AuthException("Token is null");
-        try {
-            JsonObject response = (JsonObject) EasyHttps.post(urls.get("authCheck"), null, token);
-            if(!response.get("state").getAsString().equals("valid"))
-                return false;
-            setToken(response.get("newOne").getAsString());
-            return true;
-        } catch (EasyHttpsException ex) {
-            if(ex.getResponseCode() == 401)
-                return false;
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw new AuthException("Check failed");
+            throw new IllegalStateException("token is null");
+
+
+        HttpsURLConnection conn = (HttpsURLConnection) urls.get("authCheck").openConnection();
+        authorize(conn);
+        conn.setDoInput(true);
+
+        // Read the response
+        int responseCode = conn.getResponseCode();
+        JsonObject response = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
+
+        // Close the connection
+        conn.disconnect();
+
+        // If it's not 200
+        if (responseCode != 200 || !response.get("state").getAsString().equals("valid")) {
+            return false;
         }
-        return false;
+
+        // Update the token
+        setToken(response.get("newOne").getAsString());
+
+        return true;
     }
 
     public Modality getMode() {
@@ -141,6 +156,7 @@ public class Auth {
 
     /**
      * Set the token and call all the listeners
+     *
      * @param token New token
      */
     public void setToken(String token) {
@@ -155,14 +171,16 @@ public class Auth {
 
     /**
      * Authorize an http connection made to the server
+     *
      * @param conn Connection to authorize
      */
-    public void authorize (HttpURLConnection conn) {
+    public void authorize(HttpURLConnection conn) {
         conn.setRequestProperty("Authorization", getHeaderToken());
     }
 
     /**
      * Authorize the websocket connection
+     *
      * @param server Websocket to authorize
      */
     public void authorizeWs(MyWSClient server) {
@@ -171,18 +189,20 @@ public class Auth {
 
     /**
      * Return the value of the 'Authorization' http header
+     *
      * @return Value of the authorization http header
      */
-    private String getHeaderToken () {
+    private String getHeaderToken() {
         return "Bearer " + token;
     }
 
     /**
      * Add a new listener that will be called when the auth token change. You can you this to update your
      * account information
+     *
      * @param listener Listener to call when the token change
      */
-    public void addOnTokenChangeListener (Runnable listener) {
+    public void addOnTokenChangeListener(Runnable listener) {
         tokenListeners.add(listener);
     }
 }
