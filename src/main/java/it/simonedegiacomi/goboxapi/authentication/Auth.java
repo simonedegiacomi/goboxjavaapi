@@ -91,14 +91,18 @@ public class Auth {
         conn.getOutputStream().write(authJson.toString().getBytes());
 
         // Read the response
-        int responseCode = conn.getResponseCode();
-        JsonObject response = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
-
-        if (responseCode != 200 || !response.get("result").getAsString().equals("logged in")) {
+        if (conn.getResponseCode() != 200) {
+            conn.disconnect();
             return false;
         }
-        // evaluate the response
-        String result = response.get("result").getAsString();
+        JsonObject response = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
+
+        // close the connection
+        conn.disconnect();
+
+        if (!response.get("result").getAsString().equals("logged in")) {
+            return false;
+        }
 
         // Set the token
         setToken(response.get("token").getAsString());
@@ -121,14 +125,17 @@ public class Auth {
         conn.setDoInput(true);
 
         // Read the response
-        int responseCode = conn.getResponseCode();
+        if(conn.getResponseCode() != 200) {
+            conn.disconnect();
+            return false;
+        }
         JsonObject response = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
 
         // Close the connection
         conn.disconnect();
 
         // If it's not 200
-        if (responseCode != 200 || !response.get("state").getAsString().equals("valid")) {
+        if (!response.get("state").getAsString().equals("valid")) {
             return false;
         }
 
