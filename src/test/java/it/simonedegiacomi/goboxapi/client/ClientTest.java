@@ -1,21 +1,15 @@
 package it.simonedegiacomi.goboxapi.client;
 
-import com.google.gson.JsonElement;
 import it.simonedegiacomi.goboxapi.GBFile;
 import it.simonedegiacomi.goboxapi.authentication.Auth;
-import it.simonedegiacomi.goboxapi.authentication.AuthException;
-import it.simonedegiacomi.goboxapi.myws.WSEventListener;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
-import org.apache.log4j.varia.NullAppender;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.internal.ExactComparisonCriteria;
 
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Created on 05/04/16.
@@ -33,7 +27,7 @@ public class ClientTest {
 
 
     @Test
-    public void simpleConnection () throws ClientException, AuthException, IOException {
+    public void simpleConnection () throws ClientException, IOException {
 
         URLBuilder urls = new URLBuilder();
         urls.load();
@@ -62,7 +56,7 @@ public class ClientTest {
     }
 
     @Test
-    public void directLocal () throws ClientException, AuthException, IOException {
+    public void directLocal () throws ClientException, IOException {
         URLBuilder urls = new URLBuilder();
         urls.load();
         Auth.setUrlBuilder(urls);

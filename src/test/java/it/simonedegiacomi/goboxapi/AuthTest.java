@@ -1,10 +1,12 @@
 package it.simonedegiacomi.goboxapi;
 
 import it.simonedegiacomi.goboxapi.authentication.Auth;
-import it.simonedegiacomi.goboxapi.authentication.AuthException;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.io.IOException;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Degiacomi Simone
@@ -16,7 +18,7 @@ public class AuthTest {
     private String password = "testPassword";
 
     @Test
-    public void failAuth () throws AuthException {
+    public void failAuth () throws IOException {
         Auth auth = new Auth();
         auth.setUsername("abc");
         boolean logged = auth.login("123");
@@ -25,7 +27,7 @@ public class AuthTest {
     }
 
     @Test
-    public void auth () throws AuthException {
+    public void auth () throws IOException {
         Auth auth = new Auth();
         auth.setUsername(username);
         boolean logged = auth.login(password);

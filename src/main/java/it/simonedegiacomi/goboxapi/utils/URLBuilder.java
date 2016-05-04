@@ -2,7 +2,6 @@ package it.simonedegiacomi.goboxapi.utils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import it.simonedegiacomi.goboxapi.GBFile;
 
 import java.io.IOException;
 import java.io.InputStream;

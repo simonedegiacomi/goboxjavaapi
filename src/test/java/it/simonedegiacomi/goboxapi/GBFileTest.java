@@ -3,7 +3,6 @@ package it.simonedegiacomi.goboxapi;
 import org.junit.Test;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.security.InvalidParameterException;
 import java.util.LinkedList;
 import java.util.List;
