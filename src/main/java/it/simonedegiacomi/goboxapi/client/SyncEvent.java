@@ -48,7 +48,7 @@ public class SyncEvent implements Comparable {
     /**
      * File associated with this event.
      */
-    @DatabaseField(foreign = true)
+    @DatabaseField(foreign = true, foreignAutoRefresh = true)
     @Expose
     private GBFile file;
 
