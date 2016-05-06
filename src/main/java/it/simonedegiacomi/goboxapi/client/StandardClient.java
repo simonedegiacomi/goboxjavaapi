@@ -199,11 +199,15 @@ public class StandardClient extends Client {
             public void onEvent(JsonElement data) {
                 log.info("websocket error");
 
+                // If the client was ready
+                if (state == ClientState.READY) {
+
+                    // Call disconnect listener
+                    disconnectedListener.onDisconnect();
+                }
+
                 // Change state
                 state = ClientState.NOT_READY;
-
-                // Call disconnect listener
-                disconnectedListener.onDisconnect();
             }
         });
 
@@ -212,11 +216,15 @@ public class StandardClient extends Client {
             public void onEvent(JsonElement data) {
                 log.info("websocket closed");
 
+                // If the client was ready
+                if (state == ClientState.READY) {
+
+                    // Call disconnect listener
+                    disconnectedListener.onDisconnect();
+                }
+
                 // Change state
                 state = ClientState.NOT_READY;
-
-                // Call disconnect listener
-                disconnectedListener.onDisconnect();
             }
         });
 
