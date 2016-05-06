@@ -294,7 +294,10 @@ public class StandardClient extends Client {
     }
 
     @Override
-    public URL getUrl(TransferUrlUtils.Action action, JsonElement params) {
+    public URL getUrl(TransferUrlUtils.Action action, GBFile file, boolean preview) {
+        JsonObject params = new JsonObject();
+        params.addProperty("ID", file.getID());
+        params.addProperty("preview", preview);
         return transferUrl.getUrl(action, params);
     }
 
@@ -315,7 +318,7 @@ public class StandardClient extends Client {
             JsonObject request = new JsonObject();
             request.addProperty("ID", file.getID());
 
-            URL url = getUrl(TransferUrlUtils.Action.DOWNLOAD, request);
+            URL url = getUrl(TransferUrlUtils.Action.DOWNLOAD, file, false);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
 
             // Prepare the connection
@@ -356,8 +359,12 @@ public class StandardClient extends Client {
         try {
             eventsToIgnore.add(file.getPathAsString());
 
+            JsonObject req = new JsonObject();
+            req.add("father", gson.toJsonTree(file, GBFile.class));
+            req.addProperty("name", file.getName());
+
             // Get the url to upload the file
-            URL url = transferUrl.getUrl(TransferUrlUtils.Action.UPLOAD, gson.toJsonTree(file, GBFile.class), true);
+            URL url = transferUrl.getUrl(TransferUrlUtils.Action.UPLOAD, req, true);
 
             // Create a new https connection
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();

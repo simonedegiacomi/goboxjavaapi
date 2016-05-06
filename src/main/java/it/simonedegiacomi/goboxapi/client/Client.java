@@ -64,10 +64,11 @@ public abstract class Client {
     /**
      * Return the url for the specified action with the specified parameters
      * @param action Action
-     * @param params Parameters to add in the url
-     * @return Result url
+     * @param file File
+     * @param preview Preview
+     * @return
      */
-    public abstract URL getUrl (TransferUrlUtils.Action action, JsonElement params);
+    public abstract URL getUrl (TransferUrlUtils.Action action, GBFile file, boolean preview);
 
     /**
      * Retrieve the file from the storage and save it to the file position saved inside the GBFile
