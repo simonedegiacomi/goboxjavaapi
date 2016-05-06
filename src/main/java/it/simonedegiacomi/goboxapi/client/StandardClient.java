@@ -360,7 +360,7 @@ public class StandardClient extends Client {
             eventsToIgnore.add(file.getPathAsString());
 
             JsonObject req = new JsonObject();
-            req.add("father", gson.toJsonTree(file, GBFile.class));
+            req.add("father", gson.toJsonTree(new GBFile(file.getFatherID()), GBFile.class));
             req.addProperty("name", file.getName());
 
             // Get the url to upload the file
