@@ -67,7 +67,7 @@ public class URLBuilder {
      */
     public URI getURI (String what) {
         try {
-            return get(what).toURI();
+            return new URI(properties.getProperty(what));
         } catch (URISyntaxException ex) {
             return null;
         }
