@@ -1,7 +1,7 @@
 # GoBoxAPI
-This folder contains the code of the API for manage the files of your GoBox Storage.
+This repository contains the code of the API for manage the files of your GoBox Storage.
 
-## Import
+## How to Import
 ### Maven
 To import this library you can use [Jitpack](https://jitpack.io/).
 Just add Jitpack as repository

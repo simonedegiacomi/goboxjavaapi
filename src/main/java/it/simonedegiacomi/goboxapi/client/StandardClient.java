@@ -19,7 +19,6 @@ import org.apache.log4j.Logger;
 
 import javax.net.ssl.*;
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.security.*;
