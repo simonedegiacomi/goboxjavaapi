@@ -28,7 +28,8 @@ public class SyncEvent implements Comparable {
         REMOVE_FILE,
         OPEN_FILE,
         SHARE_FILE,
-        UNSHARE_FILE
+        UNSHARE_FILE,
+        UPDATE_FILE
     }
 
     /**
