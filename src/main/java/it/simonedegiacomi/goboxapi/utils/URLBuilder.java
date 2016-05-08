@@ -1,6 +1,5 @@
 package it.simonedegiacomi.goboxapi.utils;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
@@ -12,16 +11,18 @@ import java.net.URL;
 import java.util.Properties;
 
 /**
- * This object is used to store the url to use in
- * the program. It saves the url in  a file and reload
- * it when created. It also can create new url appending
- * string parameters to the url.
+ * This object is used to store the url to use in the program.
+ * It also can create new url appending parameters to the url.
  *
- * Created by Degiacomi Simone onEvent 09/01/16.
+ * Created on 09/01/16.
+ * @author Degiacomi Simone
  */
 public class URLBuilder {
 
-    private static final String DEFAULT_URLS_LOCATION = "/urls.conf";
+    /**
+     * Name of the file with default url
+     */
+    private static final String DEFAULT_URLS_LOCATION = "/urls.properties";
 
     /**
      * Properties that contains the url
@@ -29,23 +30,21 @@ public class URLBuilder {
     private final Properties properties = new Properties();
 
     /**
-     * Load the urls from a string without creating a new URLBuilder
+     * Load the urls from the specified input stream
      * @param in Stream to which read the properties
      * @throws IOException
      */
-    public URLBuilder load (InputStream in) throws IOException {
+    public void load (InputStream in) throws IOException {
         properties.load(in);
-        return this;
-    }
-
-    public URLBuilder load () throws IOException {
-        return load(URLBuilder.class.getResourceAsStream(DEFAULT_URLS_LOCATION));
     }
 
     /**
-     * Create new empty URLBuilder
+     * Load the url builder with the default url
+     * @throws IOException
      */
-    public URLBuilder() { }
+    public void load () throws IOException {
+        load(URLBuilder.class.getResourceAsStream(DEFAULT_URLS_LOCATION));
+    }
 
     /**
      * Return a new url specifying the key
@@ -61,27 +60,36 @@ public class URLBuilder {
         }
     }
 
+    /**
+     * Return the specified url in uri
+     * @param what Name of the url
+     * @return Uri
+     */
     public URI getURI (String what) {
         try {
-            return new URI(properties.getProperty(what));
+            return get(what).toURI();
         } catch (URISyntaxException ex) {
             return null;
         }
     }
 
+    /**
+     * Return the specified url in string
+     * @param what Name of the url
+     * @return Url in string
+     */
     public String getAsString (String what) {
-        return properties.get(what).toString();
+        return get(what).toString();
     }
 
     /**
-     * Return a new url with the specified parameters
+     * Return a new url with the specified parameters serialized in the url as query parameters.
+     * This method is an alias for {@link #get(String, JsonObject, boolean)}
      * @param what Key of the url
-     * @param params Parameters to append
-     * @return URL with the specified parameters. If
-     * the url doesn't exist, a null pointer will be
-     * returned
+     * @param params Parameters to append to the url
+     * @return URL with the specified parameters serialized in query parameters.
      */
-    public URL get (String what, JsonElement params) {
+    public URL get (String what, JsonObject params) {
         try {
             return get(what, params, false);
         } catch (Exception ex) {
@@ -89,7 +97,16 @@ public class URLBuilder {
         }
     }
 
-    public URL get (String what, JsonElement params, boolean singleParam) {
+    /**
+     * Return a new url with the specified parameters serialized in query parameters
+     *
+     * Example: http://domain.com?json={"key"="value"}
+     * @param what Key of the url
+     * @param params Parameters to serialize
+     * @param singleParam If true all the json will be serialized in only a single query string filed named 'json'
+     * @return Url with the specified parameters
+     */
+    public URL get (String what, JsonObject params, boolean singleParam) {
         try {
             return URLParams.createURL(properties.get(what).toString(), (JsonObject) params, singleParam);
         } catch (Exception ex) {
@@ -98,7 +115,7 @@ public class URLBuilder {
     }
 
     /**
-     * Add a new url
+     * Add a new url to the internal map
      * @param key Name of the url
      * @param url Url
      */
@@ -107,7 +124,7 @@ public class URLBuilder {
     }
 
     /**
-     * Remove the specified url
+     * Remove the specified url from the internal map
      * @param key Url to remove
      */
     public void removeUrl (String key) {

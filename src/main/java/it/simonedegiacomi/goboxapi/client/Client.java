@@ -1,6 +1,5 @@
 package it.simonedegiacomi.goboxapi.client;
 
-import com.google.gson.JsonElement;
 import it.simonedegiacomi.goboxapi.GBFile;
 
 import java.io.*;
@@ -8,8 +7,7 @@ import java.net.URL;
 import java.util.List;
 
 /**
- * This is the interface of the goboxclient api and define the basic operation
- * that a client can do.
+ * This is the interface of the goboxclient api and define the basic operation that a client can do.
  *
  * @author Degiacomi Simone
  * Created on 02/01/2016.
@@ -19,7 +17,11 @@ public abstract class Client {
     /**
      * Possible state of the client
      */
-    public enum ClientState { INIT, READY, NOT_READY };
+    public enum ClientState {
+        INIT,
+        READY,
+        NOT_READY
+    }
 
     /**
      * Check if the client is ready to perform operations. The difference between the {@link #getState()}
@@ -68,12 +70,16 @@ public abstract class Client {
      * @param preview Preview
      * @return
      */
-    public abstract URL getUrl (TransferUrlUtils.Action action, GBFile file, boolean preview);
+    public abstract URL getUrl (TransferProfile.Action action, GBFile file, boolean preview);
 
     /**
      * Retrieve the file from the storage and save it to the file position saved inside the GBFile
      * passed as argument. If the file doesn't exist a new exception is thrown.
      * This method automatically create needed directory to store the file, calling the mkdirs java File method.
+     *
+     * NOTE that this method is an alias for {@link #getFile(GBFile, OutputStream)} so this file must have a valid id.
+     * Also remember that this method use the path (and the prefix) of the argument file, so is recommended to pass a file
+     * retrieved via {@link #getInfo(GBFile)}.
      * @param file File to retrieve.
      * @throws ClientException Exception thrown in case of invalid id, network error or io error while saving the
      * file to the disk
@@ -86,13 +92,16 @@ public abstract class Client {
         father.mkdirs();
 
         // Then download the file
-        getFile(file, new FileOutputStream(file.toFile()));
+        OutputStream out = new FileOutputStream(file.toFile());
+        getFile(file, out);
+        out.close();
     }
 
 
     /**
-     * Same as getFile(GBFile) but let you specify the output stream that will be used to write the incoming file
-     * from the storage
+     * Download the specified file ito the specified output stream. The argument file of this method must know his ID. If
+     * you have only the path use the {@link #getInfo(GBFile)} method first.
+     * NOTE that this method doesn't close the stream
      * @param file File to download
      * @param dst Destination of the input stream of the file
      * @throws ClientException Exception thrown in case of
@@ -101,7 +110,8 @@ public abstract class Client {
     public abstract void getFile (GBFile file, OutputStream dst) throws ClientException, IOException;
 
     /**
-     * Create a new directory in the Storage
+     * Create a new directory in the Storage.
+     * NOTE that this method doesn't do anything to the local file system
      * @param newDir Directory to create
      * @throws ClientException thrown if a folder with the same name exist or other reason of the storage
      */
@@ -109,6 +119,7 @@ public abstract class Client {
 
     /**
      * Send a file to the storage.
+     * NOTE that this method doesn't close the stream
      * @param file File to send File to send. The object must have or the field father id or the path.
      * @param stream Stream of the file Stream that will be sent to the storage
      * @throws ClientException Exception Network error or invalid father reference
@@ -122,11 +133,13 @@ public abstract class Client {
      * father reference
      */
     public void uploadFile (GBFile file) throws ClientException, IOException {
-        uploadFile(file, new FileInputStream(file.toFile()));
+        InputStream in =new FileInputStream(file.toFile());
+        uploadFile(file, in);
+        in.close();
     }
 
     /**
-     * Move a file from/to the trash
+     * Move a file from/to the trash.
      * @param file File to move
      * @param toTrash True to move the file in the trash, false otherwise
      * @throws ClientException
@@ -135,7 +148,8 @@ public abstract class Client {
 
     /**
      * Move a file to/from the trash using {@link #isTrashed} method. This method is an alias for
-     * {@link #trashFile(GBFile, boolean)}
+     * {@link #trashFile(GBFile, boolean)}.
+     * This file doesn't change the local file system
      * @param file file
      * @throws ClientException
      */
@@ -143,9 +157,9 @@ public abstract class Client {
         trashFile(file, file.isTrashed());
     }
 
-
     /**
-     * Remove a file from the storage, even if it's not in the trash
+     * Remove a file from the storage, even if it's not in the trash.
+     * This file doesn't change the local file system
      * @param file File to remove
      * @throws ClientException Exception thrown if the id is not valid
      */
@@ -162,14 +176,6 @@ public abstract class Client {
      * @param listener Listener to remove
      */
     public abstract void removeSyncEventListener (SyncEventListener listener);
-
-    /**
-     * Talk to the storage and tell to it the last ID of the event that
-     * this client has heard. The not heard event will come as normal SyncEvent.
-     * @param lastHeardId The ID of the last event you received or from you want
-     *                    the list
-     */
-    public abstract void requestEvents (long lastHeardId);
 
     /**
      * Return the list of the shared files
@@ -201,7 +207,7 @@ public abstract class Client {
      * @return List with the recent files
      * @throws ClientException
      */
-    public abstract List<GBFile> getRecentFiles (long from, long size) throws ClientException;
+    public abstract List<SyncEvent> getRecentFiles (long from, long size) throws ClientException;
 
     /**
      * Return a list of the trashed files

@@ -40,11 +40,11 @@ import java.util.concurrent.Phaser;
  * to authenticate and to share events and use HTTP(s) to transfer the files.
  *
  * @author Degiacomi Simone
- * Created on 31/12/2015.
+ *         Created on 31/12/2015.
  */
 public class StandardClient extends Client {
 
-    public enum ConnectionMode { BRIDGE_MODE, DIRECT_MODE, LOCAL_DIRECT_MODE };
+    public enum ConnectionMode {BRIDGE_MODE, DIRECT_MODE, LOCAL_DIRECT_MODE}
 
     /**
      * Logger of the class
@@ -77,11 +77,6 @@ public class StandardClient extends Client {
     private ClientState state = ClientState.NOT_READY;
 
     /**
-     * Modality of current connection.
-     */
-    private ConnectionMode mode = ConnectionMode.BRIDGE_MODE;
-
-    /**
      * Set of events to ignore
      */
     private final Set<String> eventsToIgnore = new HashSet<>();
@@ -101,26 +96,11 @@ public class StandardClient extends Client {
      */
     private DisconnectedListener disconnectedListener;
 
-    /**
-     * Socket factory to use for the direct connection
-     */
-    private SSLSocketFactory sslSocketFactory;
-
-    /**
-     * Hostname verified used for the direct connection
-     */
-    private HostnameVerifier hostnameVerifier;
-
-    /**
-     * Direct connection auth token
-     */
-    private String directAuth;
-
-    private TransferUrlUtils transferUrl;
+    private TransferProfile currentTransferProfile;
 
     private Phaser works = new Phaser();
 
-    public static void setUrlBuilder (URLBuilder builder) {
+    public static void setUrlBuilder(URLBuilder builder) {
         urls = builder;
     }
 
@@ -131,7 +111,7 @@ public class StandardClient extends Client {
      */
     public StandardClient(final Auth auth) {
         this.auth = auth;
-        this.transferUrl = new TransferUrlUtils(urls);
+        this.currentTransferProfile = new TransferProfile(urls, auth);
     }
 
     /**
@@ -143,14 +123,16 @@ public class StandardClient extends Client {
 
     /**
      * Set the listener for the disconnection cause by the websocket
+     *
      * @param listener Listener to call
      */
-    public void onDisconnect (DisconnectedListener listener) {
+    public void onDisconnect(DisconnectedListener listener) {
         this.disconnectedListener = listener;
     }
 
     /**
      * Check if the client is connected to the storage
+     *
      * @return
      */
     @Override
@@ -159,7 +141,9 @@ public class StandardClient extends Client {
     }
 
     @Override
-    public ClientState getState () { return state; }
+    public ClientState getState() {
+        return state;
+    }
 
     /**
      * Connect to the server and to the storage. This method will block
@@ -168,7 +152,7 @@ public class StandardClient extends Client {
      */
     @Override
     public boolean init() throws ClientException {
-        if(state != ClientState.NOT_READY)
+        if (state != ClientState.NOT_READY)
             throw new ClientException("Client already connected");
 
         // Change the current state
@@ -240,7 +224,6 @@ public class StandardClient extends Client {
 
                         // Change current state
                         state = ClientState.READY;
-                        mode = ConnectionMode.DIRECT_MODE;
                         registerSyncEventListener();
                         readyCountDown.countDown();
                         return;
@@ -272,7 +255,7 @@ public class StandardClient extends Client {
         }
     }
 
-    private void registerSyncEventListener () {
+    private void registerSyncEventListener() {
         // Add a new listener onEvent the handlers socket
         server.onEvent("syncEvent", new WSEventListener() {
             @Override
@@ -294,11 +277,11 @@ public class StandardClient extends Client {
     }
 
     @Override
-    public URL getUrl(TransferUrlUtils.Action action, GBFile file, boolean preview) {
+    public URL getUrl(TransferProfile.Action action, GBFile file, boolean preview) {
         JsonObject params = new JsonObject();
         params.addProperty("ID", file.getID());
         params.addProperty("preview", preview);
-        return transferUrl.getUrl(action, params);
+        return currentTransferProfile.getUrl(action, params);
     }
 
     /**
@@ -318,11 +301,8 @@ public class StandardClient extends Client {
             JsonObject request = new JsonObject();
             request.addProperty("ID", file.getID());
 
-            URL url = getUrl(TransferUrlUtils.Action.DOWNLOAD, file, false);
-            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-
-            // Prepare the connection
-            prepareRequest(conn);
+            // Open the connection
+            HttpsURLConnection conn = currentTransferProfile.openConnection(TransferProfile.Action.DOWNLOAD, request, false);
 
             InputStream fromServer = conn.getInputStream();
 
@@ -363,16 +343,12 @@ public class StandardClient extends Client {
             req.add("father", gson.toJsonTree(new GBFile(file.getFatherID()), GBFile.class));
             req.addProperty("name", file.getName());
 
-            // Get the url to upload the file
-            URL url = transferUrl.getUrl(TransferUrlUtils.Action.UPLOAD, req, true);
-
             // Create a new https connection
-            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            HttpsURLConnection conn = currentTransferProfile.openConnection(TransferProfile.Action.UPLOAD, req, true);
             conn.setDoInput(true);
             conn.setDoOutput(true);
 
             // Prepare the connection
-            prepareRequest(conn);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Length", String.valueOf(file.getSize()));
 
@@ -392,20 +368,6 @@ public class StandardClient extends Client {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
-    }
-
-    /**
-     * Authorize, set the ssl socket factory and set the hostname verifier
-     * @param conn Connection to prepare
-     */
-    private void prepareRequest (HttpsURLConnection conn) {
-        if (mode == ConnectionMode.BRIDGE_MODE) {
-            auth.authorize(conn);
-            return;
-        }
-        conn.setSSLSocketFactory(sslSocketFactory);
-        conn.setHostnameVerifier(hostnameVerifier);
-        conn.addRequestProperty("Authorization", directAuth);
     }
 
     /**
@@ -445,7 +407,7 @@ public class StandardClient extends Client {
     public GBFile getInfo(GBFile father) throws ClientException {
         // Check if the file is already cached
         GBFile fromCache = cache.get(father);
-        if(fromCache != null)
+        if (fromCache != null)
             return fromCache;
         try {
             JsonObject request = new JsonObject();
@@ -531,15 +493,8 @@ public class StandardClient extends Client {
     }
 
     @Override
-    public void requestEvents(long lastHeardId) {
-        JsonObject request = new JsonObject();
-        request.addProperty("ID", lastHeardId);
-        server.sendEvent("getEventsList", request);
-    }
-
-    @Override
     public void shutdown() throws ClientException {
-        if(server == null || !server.isConnected())
+        if (server == null || !server.isConnected())
             throw new ClientException("Client not connected");
         server.disconnect();
         this.state = ClientState.NOT_READY;
@@ -549,7 +504,8 @@ public class StandardClient extends Client {
     public List<GBFile> getSharedFiles() throws ClientException {
         try {
             JsonObject response = server.makeQuery("getSharedFiles", null).get().getAsJsonObject();
-            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
+            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>() {
+            }.getType());
         } catch (InterruptedException ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
@@ -583,9 +539,10 @@ public class StandardClient extends Client {
         JsonElement request = gson.toJsonTree(filter, GBFilter.class);
         try {
             JsonObject response = server.makeQuery("search", request).get().getAsJsonObject();
-            if(response.get("success").getAsBoolean())
+            if (response.get("success").getAsBoolean())
                 throw new ClientException(response.get("error").getAsString());
-            return gson.fromJson(response.get("result"), new TypeToken<List<GBFile>>(){}.getType());
+            return gson.fromJson(response.get("result"), new TypeToken<List<GBFile>>() {
+            }.getType());
         } catch (InterruptedException ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
@@ -597,13 +554,14 @@ public class StandardClient extends Client {
 
     /**
      * Request to the server the list of the recent files
+     *
      * @param from Offset of the result list
      * @param size Limit of the result list
      * @return List of recent files
      * @throws ClientException
      */
     @Override
-    public List<GBFile> getRecentFiles(long from, long size) throws ClientException {
+    public List<SyncEvent> getRecentFiles(long from, long size) throws ClientException {
 
         // Prepare the request
         JsonObject request = new JsonObject();
@@ -615,10 +573,10 @@ public class StandardClient extends Client {
             JsonObject response = server.makeQuery("recent", request).get().getAsJsonObject();
 
             // Check if there was an error
-            if(response.get("success").getAsBoolean())
+            if (response.get("success").getAsBoolean())
                 throw new ClientException(response.get("error").getAsString());
 
-            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
+            return gson.fromJson(response.get("events"), new TypeToken<List<SyncEvent>>() {}.getType());
         } catch (InterruptedException ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
@@ -630,6 +588,7 @@ public class StandardClient extends Client {
 
     /**
      * Return the list of the trashed files
+     *
      * @return List of the trashed files
      * @throws ClientException
      */
@@ -639,10 +598,11 @@ public class StandardClient extends Client {
             JsonObject response = server.makeQuery("trashed", null).get().getAsJsonObject();
 
             // Check if there was an error
-            if(response.get("success").getAsBoolean())
+            if (response.get("success").getAsBoolean())
                 throw new ClientException(response.get("error").getAsString());
 
-            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>(){}.getType());
+            return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>() {
+            }.getType());
         } catch (InterruptedException ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
@@ -690,57 +650,63 @@ public class StandardClient extends Client {
     /**
      * Try to switch to the selected mode. This method will block the thread.
      * If you try to switch to the current mode, nothing happen.
+     *
      * @param nextMode Next mode to switch
      * @throws ClientException Switch failed
      */
-    public void switchMode (ConnectionMode nextMode) throws ClientException {
+    public void switchMode(ConnectionMode nextMode) throws ClientException {
 
         // Check if the client is connected
-        if(server == null && !server.isConnected())
+        if (server == null && !server.isConnected())
             throw new IllegalStateException("client not connected");
 
         // Assert that is not the current mode
-        if(nextMode == mode)
+        if (nextMode == currentTransferProfile.getMode())
             return;
 
-        if(nextMode == ConnectionMode.BRIDGE_MODE) {
-            try {
-                transferUrl.setMode(mode, null);
-            } catch (MalformedURLException ex) { new RuntimeException(ex);}
-            this.mode = ConnectionMode.BRIDGE_MODE;
+        if (nextMode == ConnectionMode.BRIDGE_MODE) {
+            currentTransferProfile = new TransferProfile(urls, auth);
             log.info("Switched to bridge mode");
             return;
         }
 
         try {
+
             // Ask the storage if this modality is available
             JsonObject response = server.makeQuery("directLogin", null).get().getAsJsonObject();
 
             // Get the ip
             String ip = nextMode == ConnectionMode.LOCAL_DIRECT_MODE ? response.get("localIP").getAsString() : response.get("publicIP").getAsString();
             String port = response.get("port").getAsString();
-            URL base = new URL("https://" + ip + ':' + port + '/');
-            URL login = new URL(base + "directLogin");
+            String baseString = new StringBuilder("https://").append(ip).append(':').append(port).append('/').toString();
+
+            URL baseUrl = new URL(baseString);
+            URL login = new URL(baseUrl + "directLogin");
 
             // Get the certificate from the query response
             CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-            byte[] encodedCertificate = gson.fromJson(response.get("certificate"), new TypeToken<byte[]>(){}.getType());
+            byte[] encodedCertificate = gson.fromJson(response.get("certificate"), new TypeToken<byte[]>() {
+            }.getType());
             InputStream inCertificate = new ByteArrayInputStream(encodedCertificate);
             X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(inCertificate);
 
-            // Create a new ssl socket factory that accepts the storage certificate
-            sslSocketFactory = createTrustedSocketFactory(certificate);
+            // Create the new profile
+            TransferProfile newProfile = new TransferProfile(urls, nextMode, baseString);
 
-            // Try to call the storage to authenticate
-            HttpsURLConnection conn = (HttpsURLConnection) login.openConnection();
-            conn.setSSLSocketFactory(sslSocketFactory);
-            hostnameVerifier = new HostnameVerifier() {
+            // Create a new ssl socket factory that accepts the storage certificate
+            newProfile.setSslSocketFactory(createTrustedSocketFactory(certificate));
+
+            // Create the hostname verifier
+            newProfile.setHostnameVerifier(new HostnameVerifier() {
                 @Override
                 public boolean verify(String s, SSLSession sslSession) {
                     return true;
                 }
-            };
-            conn.setHostnameVerifier(hostnameVerifier);
+            });
+
+            // Try to call the storage to authenticate
+            HttpsURLConnection conn = (HttpsURLConnection) login.openConnection();
+            newProfile.prepare(conn);
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
             conn.setDoInput(true);
@@ -760,15 +726,14 @@ public class StandardClient extends Client {
 
             // Read the response
             JsonObject loginRes = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
-            directAuth = loginRes.get("token").getAsString();
+            newProfile.setAuthHeader("Bearer " + loginRes.get("token").getAsString());
 
             // Close the http connection
             conn.disconnect();
 
-            // Change flag mode
-            transferUrl.setMode(mode, base.toString());
-            mode = nextMode;
-            log.info("Switched to: " + base);
+            // Switch profile
+            currentTransferProfile = newProfile;
+            log.info("Switched to: " + baseUrl);
         } catch (Exception ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException("Switch failed");
@@ -777,15 +742,16 @@ public class StandardClient extends Client {
 
     /**
      * Create a new ssl socket factory for accept the specified self signed certificate
+     *
      * @param c Self signed certificate to accept
      * @return SSL Socket Factory that accepts the specified self signed certificate
-     * @throws KeyStoreException cannot instantiate keystore
-     * @throws CertificateException Invalid certificate
+     * @throws KeyStoreException        cannot instantiate keystore
+     * @throws CertificateException     Invalid certificate
      * @throws NoSuchAlgorithmException
      * @throws IOException
      * @throws KeyManagementException
      */
-    private static SSLSocketFactory createTrustedSocketFactory (Certificate c) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, KeyManagementException {
+    private static SSLSocketFactory createTrustedSocketFactory(Certificate c) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, KeyManagementException {
 
         // Init key store and add the certificate
         KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());

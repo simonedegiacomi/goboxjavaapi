@@ -16,7 +16,7 @@ import java.util.Set;
 /**
  * The object of this class contains the credentials of a GoBoxAccount. To use any of the API of this package you need
  * this object. Auth also provides the necessary methods to talk with the server to check the data.
- * <p>
+ *
  * Created on 31/12/15.
  *
  * @author Degiacomi Simone
@@ -43,7 +43,7 @@ public class Auth {
     /**
      * URLs of the environment. This is transient because it shouldn't be serialized
      */
-    private transient static URLBuilder urls;
+    private static URLBuilder urls;
 
     /**
      * Token to use to authenticate with the server
@@ -54,12 +54,6 @@ public class Auth {
      * Set of listeners to call when the token change
      */
     private final Set<Runnable> tokenListeners = new HashSet<>();
-
-    /**
-     * Empty constructor
-     */
-    public Auth() {
-    }
 
     /**
      * Let you to set the url builder that will be used to connect to the server
@@ -76,7 +70,11 @@ public class Auth {
      * @return true if the user is logged, false if the credentials aren't valid
      * @throws IOException Network error
      */
-    public boolean login(String password) throws IOException {
+    public boolean login (String password) throws IOException {
+
+        // Assert that the url builder is set
+        if (urls == null)
+            throw new IllegalStateException("url builder is null");
 
         // Create the json of the authentication
         JsonObject authJson = new JsonObject();
@@ -90,11 +88,13 @@ public class Auth {
         conn.setDoInput(true);
         conn.getOutputStream().write(authJson.toString().getBytes());
 
-        // Read the response
+        // Check the response code
         if (conn.getResponseCode() != 200) {
             conn.disconnect();
             return false;
         }
+
+        // Read the response
         JsonObject response = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
 
         // close the connection
@@ -116,25 +116,25 @@ public class Auth {
      * @throws IOException Network errors
      */
     public boolean check() throws IOException {
-        if (token == null)
-            throw new IllegalStateException("token is null");
+        if (urls == null)
+            throw new IllegalStateException("url builder is null");
 
-
+        // Prepare the connection
         HttpsURLConnection conn = (HttpsURLConnection) urls.get("authCheck").openConnection();
         authorize(conn);
         conn.setDoInput(true);
 
-        // Read the response
+        // Read the response code
         if(conn.getResponseCode() != 200) {
             conn.disconnect();
             return false;
         }
+
         JsonObject response = new JsonParser().parse(new JsonReader(new InputStreamReader(conn.getInputStream()))).getAsJsonObject();
 
         // Close the connection
         conn.disconnect();
 
-        // If it's not 200
         if (!response.get("state").getAsString().equals("valid")) {
             return false;
         }
