@@ -3,7 +3,6 @@ package it.simonedegiacomi.goboxapi.client;
 import com.google.gson.JsonObject;
 import it.simonedegiacomi.goboxapi.authentication.Auth;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
-import sun.plugin.dom.exception.InvalidStateException;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -87,7 +86,7 @@ public class TransferProfile {
      */
     public void setAuthHeader (String authHeader) {
         if (mode == StandardClient.ConnectionMode.BRIDGE_MODE)
-            throw new InvalidStateException("bridge mode don't need auth header");
+            throw new IllegalStateException("bridge mode don't need auth header");
         this.authHeader = authHeader;
     }
 
