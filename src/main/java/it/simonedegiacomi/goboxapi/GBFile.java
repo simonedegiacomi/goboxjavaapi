@@ -159,6 +159,12 @@ public class GBFile {
         if (file.exists()) {
             this.isDirectory = file.isDirectory();
             this.lastUpdateDate = file.lastModified();
+            if (isDirectory) {
+                children = new LinkedList<>();
+                for (File child : file.listFiles()) {
+                    children.add(new GBFile(child, prefix));
+                }
+            }
         }
     }
 
@@ -511,10 +517,7 @@ public class GBFile {
         this.prefix = prefix;
         String pathString = rawPathString;
         if(prefix != null) {
-            if (prefix.length() >= rawPathString.length()) {
-                pathString = new String();
-                this.ID = ROOT_ID;
-            } else {
+            if (rawPathString.startsWith(prefix)) {
                 pathString = pathString.substring(prefix.length(), pathString.length());
             }
         }
@@ -544,6 +547,16 @@ public class GBFile {
      */
     public void setChildren(List<GBFile> children) {
         this.children = children;
+        if (path == null) {
+            return;
+        }
+        List<GBFile> myPath = getPathAsList();
+        for (GBFile child : children) {
+            child.setPrefix(prefix);
+            LinkedList<GBFile> childPath = new LinkedList<>(myPath);
+            childPath.add(child);
+            child.setPathByList(childPath);
+        }
     }
 
     public String getMime() {
