@@ -19,17 +19,56 @@ public class SyncEvent implements Comparable {
      * Kinds of events
      */
     public enum EventKind {
-        NEW_FILE,
-        EDIT_FILE,
-        COPY_FILE,
-        CUT_FILE,
-        TRASH_FILE,
-        RECOVER_FILE,
-        REMOVE_FILE,
-        OPEN_FILE,
-        SHARE_FILE,
-        UNSHARE_FILE,
-        UPDATE_FILE
+
+        /**
+         * New file created
+         */
+        FILE_CREATED,
+
+        /**
+         * Content of the file modified
+         */
+        FILE_MODIFIED,
+
+        /**
+         * File copied
+         */
+        FILE_COPIED,
+
+        /**
+         * File moved or renamed
+         */
+        FILE_MOVED,
+
+        /**
+         * File moved to trahs
+         */
+        FILE_TRASHED,
+
+        /**
+         * File recovered from trash
+         */
+        FILE_RECOVERED,
+
+        /**
+         * File deleted (from the trash or not)
+         */
+        FILE_DELETED,
+
+        /**
+         * File viewed, but not the preview
+         */
+        FILE_OPENED,
+
+        /**
+         * File shared
+         */
+        FILE_SHARED,
+
+        /**
+         * Stop sharing file
+         */
+        FILE_UNSHARED
     }
 
     /**

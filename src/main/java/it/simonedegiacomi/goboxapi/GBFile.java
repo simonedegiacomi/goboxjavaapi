@@ -576,16 +576,7 @@ public class GBFile {
      */
     @Override
     public String toString() {
-        return "GBFile{" +
-                "ID=" + ID +
-                ", fatherID=" + fatherID +
-                ", isDirectory=" + isDirectory +
-                ", size=" + size +
-                ", name='" + name + '\'' +
-                ", creationDate=" + creationDate +
-                ", lastUpdateDate=" + lastUpdateDate +
-                ", mime='" + mime + '\'' +
-                '}';
+        return name;
     }
 
     @Override
