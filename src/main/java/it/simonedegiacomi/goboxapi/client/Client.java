@@ -223,18 +223,12 @@ public abstract class Client {
     public abstract void emptyTrash () throws ClientException;
 
     /**
-     * Copy the specified file
+     * Move, Rename o Copy a file.
      * @param src Source file
-     * @param dst Destination file
+     * @param fatherDestination Destination folder
+     * @param newName Name of the moved (or copied) file
+     * @param copy Copy or move
      * @throws ClientException
      */
-    public abstract void copy (GBFile src, GBFile dst) throws ClientException;
-
-    /**
-     * Move (or rename) a file
-     * @param before Original file
-     * @param newName New file
-     * @throws ClientException
-     */
-    public abstract void move (GBFile before, GBFile newName) throws ClientException;
+    public abstract void move (GBFile src, GBFile fatherDestination, String newName, boolean copy) throws ClientException;
 }

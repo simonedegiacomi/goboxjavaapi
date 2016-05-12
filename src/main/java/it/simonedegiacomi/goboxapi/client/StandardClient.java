@@ -626,33 +626,16 @@ public class StandardClient extends Client {
     }
 
     @Override
-    public void copy (GBFile src, GBFile dst) throws ClientException {
+    public void move (GBFile src, GBFile fatherDst, String newName, boolean copy) throws ClientException {
         JsonObject req = new JsonObject();
         req.add("src", gson.toJsonTree(src, GBFile.class));
-        req.add("dst", gson.toJsonTree(dst, GBFile.class));
+        req.add("dstFather", gson.toJsonTree(fatherDst, GBFile.class));
+        GBFile dstFile = new GBFile();
+        dstFile.setName(newName);
+        req.add("dst", gson.toJsonTree(dstFile, GBFile.class));
+        req.addProperty("copy", copy);
         try {
             JsonObject res = server.makeQuery("copy", req).get().getAsJsonObject();
-            if (!res.get("success").getAsBoolean()) {
-                throw new ClientException(res.get("error").getAsString());
-            }
-        } catch (InterruptedException ex) {
-            log.warn(ex.toString(), ex);
-            throw new ClientException(ex.toString());
-        } catch (ExecutionException ex) {
-            log.warn(ex.toString(), ex);
-            throw new ClientException(ex.toString());
-        }
-    }
-
-    @Override
-    public void move (GBFile before, GBFile newFile) throws ClientException {
-
-        // Prepare the request
-        JsonObject request = new JsonObject();
-        request.add("src", gson.toJsonTree(before, GBFile.class));
-        request.add("dst", gson.toJsonTree(newFile, GBFile.class));
-        try {
-            JsonObject res = server.makeQuery("move", request).get().getAsJsonObject();
             if (!res.get("success").getAsBoolean()) {
                 throw new ClientException(res.get("error").getAsString());
             }
