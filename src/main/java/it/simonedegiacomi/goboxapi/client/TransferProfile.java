@@ -1,7 +1,7 @@
 package it.simonedegiacomi.goboxapi.client;
 
 import com.google.gson.JsonObject;
-import it.simonedegiacomi.goboxapi.authentication.Auth;
+import it.simonedegiacomi.goboxapi.authentication.GBAuth;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 
 import javax.net.ssl.HostnameVerifier;
@@ -30,10 +30,10 @@ public class TransferProfile {
     /**
      * Mode of this profile
      */
-    private final StandardClient.ConnectionMode mode;
+    private final StandardGBClient.ConnectionMode mode;
 
     /**
-     * Auth header for this profile
+     * GBAuth header for this profile
      */
     private String authHeader;
 
@@ -55,12 +55,12 @@ public class TransferProfile {
     /**
      * Create a new profile in bridge mode
      * @param url Url builder to use
-     * @param auth Auth object with the user credentials
+     * @param GBAuth GBAuth object with the user credentials
      */
-    public TransferProfile (URLBuilder url, Auth auth) {
+    public TransferProfile (URLBuilder url, GBAuth GBAuth) {
         this.urls = url;
-        mode = StandardClient.ConnectionMode.BRIDGE_MODE;
-        authHeader = "Bearer " + auth.getToken();
+        mode = StandardGBClient.ConnectionMode.BRIDGE_MODE;
+        authHeader = "Bearer " + GBAuth.getToken();
     }
 
     /**
@@ -70,8 +70,8 @@ public class TransferProfile {
      * @param base Base url for the current mode
      * @throws MalformedURLException
      */
-    public TransferProfile (URLBuilder url, StandardClient.ConnectionMode mode, String base) throws MalformedURLException {
-        if (mode == StandardClient.ConnectionMode.BRIDGE_MODE)
+    public TransferProfile (URLBuilder url, StandardGBClient.ConnectionMode mode, String base) throws MalformedURLException {
+        if (mode == StandardGBClient.ConnectionMode.BRIDGE_MODE)
             throw new InvalidParameterException("invalid mode");
 
         this.urls = url;
@@ -82,10 +82,10 @@ public class TransferProfile {
 
     /**
      * Set the auth header. This method is meaningless in bridge mode
-     * @param authHeader Auth header
+     * @param authHeader GBAuth header
      */
     public void setAuthHeader (String authHeader) {
-        if (mode == StandardClient.ConnectionMode.BRIDGE_MODE)
+        if (mode == StandardGBClient.ConnectionMode.BRIDGE_MODE)
             throw new IllegalStateException("bridge mode don't need auth header");
         this.authHeader = authHeader;
     }
@@ -98,7 +98,7 @@ public class TransferProfile {
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    public StandardClient.ConnectionMode getMode() {
+    public StandardGBClient.ConnectionMode getMode() {
         return mode;
     }
 
@@ -144,7 +144,7 @@ public class TransferProfile {
      */
     public URL getUrl (Action action, JsonObject params, boolean single) {
         String key = action == Action.DOWNLOAD ? "receiveFile" : "uploadFile";
-        if (mode != StandardClient.ConnectionMode.BRIDGE_MODE) {
+        if (mode != StandardGBClient.ConnectionMode.BRIDGE_MODE) {
             key += mode;
         }
         return urls.get(key, params, single);

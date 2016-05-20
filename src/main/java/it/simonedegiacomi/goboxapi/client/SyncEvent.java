@@ -95,6 +95,7 @@ public class SyncEvent implements Comparable {
     /**
      * If the event affected the file, this is the old configuration of the file
      */
+    @Expose
     private GBFile before;
 
     @DatabaseField

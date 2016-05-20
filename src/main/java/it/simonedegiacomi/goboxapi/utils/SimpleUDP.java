@@ -5,18 +5,24 @@ import java.net.*;
 import java.util.Enumeration;
 
 /**
+ * Class that provides simple UDP utilities
  * Created on 21/03/16.
  * @author Degiacomi Simone
  */
-public class UDPUtils {
+public class SimpleUDP {
 
-    private static DatagramSocket socket;
+    /**
+     * Datagram socket
+     */
+    private DatagramSocket socket;
+
+    public SimpleUDP () {}
 
     /**
      * Initialize the udp socket
      * @throws SocketException
      */
-    private static void initSocket () throws SocketException {
+    private void initSocket () throws SocketException {
 
         // Create a new UDP socket
         socket = new DatagramSocket();
@@ -29,7 +35,7 @@ public class UDPUtils {
      * @param requestBytes Message to send with the packet
      * @throws IOException
      */
-    public static void sendBroadcastPacket(int port, byte[] requestBytes) throws IOException {
+    public void sendBroadcastPacket(int port, byte[] requestBytes) throws IOException {
 
         // Check if is initialized
         if(socket == null)
@@ -64,7 +70,7 @@ public class UDPUtils {
      * @throws SocketException
      * @throws IOException
      */
-    public static DatagramPacket receive () throws SocketException, IOException{
+    public DatagramPacket receive () throws SocketException, IOException{
 
         // Check if is initialized
         if(socket == null)

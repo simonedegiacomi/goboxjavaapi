@@ -16,19 +16,6 @@ import static org.junit.Assert.*;
 public class GBFileTest {
 
     @Test
-    public void pathFromJavaFile () {
-        String filePath = "/Volumes/gobox/document.pdf";
-        File file = new File(filePath);
-        String pathPrefix = "/Volumes/gobox/";
-
-        GBFile gbFile = new GBFile(file, pathPrefix);
-
-        assertEquals(file.getName(), gbFile.getName());
-        assertEquals(file.toString(), gbFile.getAbsolutePathAsString());
-        assertEquals(pathPrefix, gbFile.getPrefix());
-    }
-
-    @Test
     public void pathFromString () {
         String filePath = "/Volumes/gobox/document.pdf";
         String relativeFilePath = "document.pdf";
@@ -103,51 +90,6 @@ public class GBFileTest {
     }
 
     @Test
-    public void constructorFile () {
-        File file = new File("school/documents/math.doc");
-        GBFile gbFile = new GBFile(file);
-
-        // Test the string path
-        assertEquals(file.toString(), gbFile.getPathAsString());
-
-        assertEquals(file, gbFile.toFile());
-
-        // Test the list path
-        List<GBFile> correct = new LinkedList<>();
-        correct.add(new GBFile("school", true));
-        correct.add(new GBFile("documents", true));
-        correct.add(new GBFile("math.doc", false));
-
-        List<GBFile> generated = gbFile.getAbsolutePathAsList();
-
-        assertTrue(correct.equals(generated));
-
-    }
-
-    @Test
-    public void constructorFileAndPrefix () {
-        String prefix = "/gobox/";
-        File file = new File("/gobox/school/documents/math.doc");
-        GBFile gbFile = new GBFile(file, prefix);
-
-        assertEquals(gbFile.getPrefix(), prefix);
-        assertEquals("school/documents/math.doc", gbFile.getPathAsString());
-        assertEquals(file, gbFile.toFile());
-
-        // Test the absolute path as list
-        List<GBFile> correct = new LinkedList<>();
-        correct.add(new GBFile("", true)); // The root
-        correct.add(new GBFile("gobox", true));
-        correct.add(new GBFile("school", true));
-        correct.add(new GBFile("documents", true));
-        correct.add(new GBFile("math.doc", false));
-
-        List<GBFile> generated = gbFile.getAbsolutePathAsList();
-
-        assertTrue(correct.equals(generated));
-    }
-
-    @Test
     public void constructorNameFatherDir () {
         String fatherName = "music";
         GBFile gbFather = new GBFile(fatherName, true);
@@ -166,68 +108,6 @@ public class GBFileTest {
         assertEquals("song.mp3", gbFile.getName());
         assertEquals(29, gbFile.getID());
         assertEquals(23, gbFile.getFatherID());
-    }
-
-    @Test
-    public void equal () {
-        String prefix = "/gobox/";
-        File f = new File ("/gobox/files/myFile.txt");
-
-        GBFile a = new GBFile(f, prefix);
-        GBFile b = new GBFile(f, prefix);
-
-        assertTrue(a.equals(b));
-
-        GBFile c = new GBFile(f);
-        assertTrue(a.equals(c));
-    }
-
-    @Test
-    public void samePrefixAndPath () {
-        String prefix = "/Volumes/gobox/";
-        String path = "/Volumes/gobox";
-        GBFile gbDir = new GBFile(new File(path), prefix);
-
-        assertEquals(path, gbDir.getAbsolutePathAsString());
-        assertEquals("", gbDir.getPathAsString());
-        assertEquals(GBFile.ROOT_FILE, gbDir);
-
-        assertEquals(new File(path), gbDir.toFile());
-
-        List<GBFile> correctAbsolute = new LinkedList<>();
-        correctAbsolute.add(new GBFile("", true)); // Root
-        correctAbsolute.add(new GBFile("Volumes", true));
-        correctAbsolute.add(new GBFile("gobox", true));
-
-        assertEquals(correctAbsolute, gbDir.getAbsolutePathAsList());
-    }
-
-    @Test
-    public void paths () {
-        String prefix = "/Volumes/HD/";
-        String relativeFilePath = "school/documents/";
-        String fileName = "test.pdf";
-        File file = new File(prefix + relativeFilePath + fileName);
-
-        GBFile gbFile = new GBFile(file, prefix);
-
-        assertEquals(file, gbFile.toFile());
-
-        GBFile b = new GBFile();
-        b.setAbsolutePathByString(prefix + relativeFilePath + fileName, prefix);
-
-        assertEquals(file, b.toFile());
-
-        GBFile c = new GBFile();
-        c.setPathByString(relativeFilePath + fileName);
-
-        assertEquals(relativeFilePath + fileName, c.getPathAsString());
-
-        c.setPrefix(prefix);
-
-        assertEquals(relativeFilePath + fileName, c.getPathAsString());
-        assertEquals(prefix + relativeFilePath + fileName, c.getAbsolutePathAsString());
-        assertEquals(file, gbFile.toFile());
     }
 
     @Test

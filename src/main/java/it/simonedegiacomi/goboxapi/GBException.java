@@ -1,9 +1,11 @@
 package it.simonedegiacomi.goboxapi;
 
 /**
- * Created by Degiacomi Simone onEvent 10/01/16.
+ * Created on 10/01/16.
+ * @author Degiacomi Simone
  */
 public class GBException extends Exception {
+
     /**
      * Message that contains more information about the exception
      */
@@ -19,8 +21,6 @@ public class GBException extends Exception {
 
     @Override
     public String toString() {
-        return "ClientException{" +
-                "message='" + message + '\'' +
-                '}';
+        return message;
     }
 }

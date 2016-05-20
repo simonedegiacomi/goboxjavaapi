@@ -7,12 +7,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
-import com.neovisionaries.ws.client.WebSocketException;
 import it.simonedegiacomi.goboxapi.GBCache;
 import it.simonedegiacomi.goboxapi.GBFile;
-import it.simonedegiacomi.goboxapi.authentication.Auth;
+import it.simonedegiacomi.goboxapi.authentication.GBAuth;
 import it.simonedegiacomi.goboxapi.myws.MyWSClient;
 import it.simonedegiacomi.goboxapi.myws.WSEventListener;
+import it.simonedegiacomi.goboxapi.myws.WSException;
 import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 import org.apache.log4j.Logger;
@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.Phaser;
 
 /**
  * This is an implementation of the gobox api client interface. This client uses WebSocket to transfer the file list,
@@ -41,19 +40,23 @@ import java.util.concurrent.Phaser;
  * @author Degiacomi Simone
  *         Created on 31/12/2015.
  */
-public class StandardClient extends Client {
+public class StandardGBClient extends GBClient {
 
-    public enum ConnectionMode {BRIDGE_MODE, DIRECT_MODE, LOCAL_DIRECT_MODE}
+    public enum ConnectionMode {
+        BRIDGE_MODE,
+        DIRECT_MODE,
+        LOCAL_DIRECT_MODE
+    }
 
     /**
      * Logger of the class
      */
-    private static final Logger log = Logger.getLogger(StandardClient.class);
+    private static final Logger log = Logger.getLogger(StandardGBClient.class);
 
     /**
      * Object used to create the urls.
      */
-    private static URLBuilder urls = new URLBuilder();
+    private static URLBuilder urls = URLBuilder.DEFAULT;
 
     /**
      * WebSocket connection to the server
@@ -63,12 +66,12 @@ public class StandardClient extends Client {
     /**
      * Authorization object used to make the call
      */
-    private final Auth auth;
+    private final GBAuth GBAuth;
 
     /**
      * Gson instance to create json objects
      */
-    private final Gson gson = new MyGsonBuilder().create();
+    private final Gson gson = MyGsonBuilder.create();
 
     /**
      * State of the client
@@ -95,22 +98,19 @@ public class StandardClient extends Client {
      */
     private DisconnectedListener disconnectedListener;
 
+    /**
+     * Object that contains the transfer information
+     */
     private TransferProfile currentTransferProfile;
-
-    private Phaser works = new Phaser();
-
-    public static void setUrlBuilder(URLBuilder builder) {
-        urls = builder;
-    }
 
     /**
      * Construct a sync object, but first try to login to gobox.
      *
-     * @param auth Auth object that will be used to authenticate
+     * @param GBAuth GBAuth object that will be used to authenticate
      */
-    public StandardClient(final Auth auth) {
-        this.auth = auth;
-        this.currentTransferProfile = new TransferProfile(urls, auth);
+    public StandardGBClient(final GBAuth GBAuth) {
+        this.GBAuth = GBAuth;
+        this.currentTransferProfile = new TransferProfile(urls, GBAuth);
     }
 
     /**
@@ -152,10 +152,10 @@ public class StandardClient extends Client {
     @Override
     public boolean init() throws ClientException {
         if (state != ClientState.NOT_READY)
-            throw new ClientException("Client already connected");
+            throw new ClientException("GBClient already connected");
 
         // Change the current state
-        state = ClientState.INIT;
+        state = ClientState.INITIALIZING;
 
         try {
 
@@ -166,7 +166,7 @@ public class StandardClient extends Client {
         }
 
         // Authorize the connection
-        auth.authorizeWs(server);
+        GBAuth.authorize(server);
 
         // When the webSocket in opened, send the authentication object
         server.onEvent("open", new WSEventListener() {
@@ -246,7 +246,7 @@ public class StandardClient extends Client {
             readyCountDown.await();
 
             return isReady();
-        } catch (WebSocketException ex) {
+        } catch (WSException ex) {
             ex.printStackTrace();
             throw new ClientException(ex.toString());
         } catch (InterruptedException ex) {
@@ -286,7 +286,7 @@ public class StandardClient extends Client {
     /**
      * Download a file from the storage copying the file to the output stream.
      * If you call this method with a file that is a folder, you'll get a compressed version of the folder
-     * This method close the destination stream
+     * This method close the destination stream.
      *
      * @param file File to download.
      * @param dst  Output stream where put the content of the file.
@@ -294,7 +294,8 @@ public class StandardClient extends Client {
      */
     @Override
     public void getFile(GBFile file, OutputStream dst) throws ClientException, IOException {
-        works.register();
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
         try {
             // Create and fill the request object
             JsonObject request = new JsonObject();
@@ -312,10 +313,7 @@ public class StandardClient extends Client {
             fromServer.close();
             conn.disconnect();
             dst.close();
-
-            works.arriveAndDeregister();
         } catch (IOException ex) {
-            works.arriveAndDeregister();
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
@@ -333,8 +331,11 @@ public class StandardClient extends Client {
      */
     @Override
     public void uploadFile(GBFile file, InputStream stream) throws ClientException, IOException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
         if (file.isDirectory())
             throw new InvalidParameterException("this file is a folder");
+
         try {
             eventsToIgnore.add(file.getPathAsString());
 
@@ -378,6 +379,9 @@ public class StandardClient extends Client {
      */
     @Override
     public void createDirectory(GBFile newDir) throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         try {
             // Ignore the events from the server related to this file
             eventsToIgnore.add(newDir.getPathAsString());
@@ -404,6 +408,9 @@ public class StandardClient extends Client {
      */
     @Override
     public GBFile getInfo(GBFile father) throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         // Check if the file is already cached
         GBFile fromCache = cache.get(father);
         if (fromCache != null)
@@ -433,6 +440,8 @@ public class StandardClient extends Client {
 
     @Override
     public void trashFile(GBFile file, boolean toTrash) throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
 
         // Prepare the request
         JsonObject request = new JsonObject();
@@ -460,7 +469,10 @@ public class StandardClient extends Client {
      * @throws ClientException
      */
     @Override
-    public void removeFile(GBFile file) throws ClientException {
+    public void removeFile (GBFile file) throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         eventsToIgnore.add(file.getPathAsString());
         // Make the request trough handlers socket
         try {
@@ -482,25 +494,28 @@ public class StandardClient extends Client {
      *
      * @param listener Listener that will called with the relative
      */
-    public void addSyncEventListener(final SyncEventListener listener) {
+    public void addSyncEventListener (final SyncEventListener listener) {
         listeners.add(listener);
     }
 
     @Override
-    public void removeSyncEventListener(SyncEventListener listener) {
+    public void removeSyncEventListener (SyncEventListener listener) {
         listeners.remove(listener);
     }
 
     @Override
     public void shutdown() throws ClientException {
-        if (server == null || !server.isConnected())
-            throw new ClientException("Client not connected");
+        if (state != ClientState.READY)
+            throw new ClientException("GBClient not connected");
         server.disconnect();
         this.state = ClientState.NOT_READY;
     }
 
     @Override
     public List<GBFile> getSharedFiles() throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         try {
             JsonObject response = server.makeQuery("getSharedFiles", null).get().getAsJsonObject();
             return gson.fromJson(response.get("files"), new TypeToken<List<GBFile>>() {
@@ -515,7 +530,10 @@ public class StandardClient extends Client {
     }
 
     @Override
-    public void share(GBFile file, boolean share) throws ClientException {
+    public void share (GBFile file, boolean share) throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         JsonObject request = new JsonObject();
         request.addProperty("share", share);
         request.addProperty("ID", file.getID());
@@ -535,6 +553,9 @@ public class StandardClient extends Client {
 
     @Override
     public List<GBFile> getFilesByFilter(GBFilter filter) throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         JsonElement request = gson.toJsonTree(filter, GBFilter.class);
         try {
             JsonObject response = server.makeQuery("search", request).get().getAsJsonObject();
@@ -561,6 +582,8 @@ public class StandardClient extends Client {
      */
     @Override
     public List<SyncEvent> getRecentFiles(long from, long size) throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
 
         // Prepare the request
         JsonObject request = new JsonObject();
@@ -593,6 +616,9 @@ public class StandardClient extends Client {
      */
     @Override
     public List<GBFile> getTrashedFiles() throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         try {
             JsonObject response = server.makeQuery("trashed", null).get().getAsJsonObject();
 
@@ -613,6 +639,9 @@ public class StandardClient extends Client {
 
     @Override
     public void emptyTrash() throws ClientException {
+        if (state != ClientState.READY)
+            throw new IllegalStateException("client not initialized");
+
         try {
             JsonObject res = server.makeQuery("emptyTrash", null).get().getAsJsonObject();
             if (!res.get("success").getAsBoolean()) {
@@ -666,7 +695,7 @@ public class StandardClient extends Client {
             return;
 
         if (nextMode == ConnectionMode.BRIDGE_MODE) {
-            currentTransferProfile = new TransferProfile(urls, auth);
+            currentTransferProfile = new TransferProfile(urls, GBAuth);
             log.info("Switched to bridge mode");
             return;
         }
@@ -712,12 +741,12 @@ public class StandardClient extends Client {
             conn.setDoOutput(true);
             conn.setDoInput(true);
 
-            // Create the auth object
+            // Create the GBAuth object
             JsonObject json = new JsonObject();
             json.addProperty("temporaryToken", response.get("temporaryToken").getAsString());
             json.addProperty("cookie", false);
 
-            // Send the auth
+            // Send the GBAuth
             conn.getOutputStream().write(json.toString().getBytes());
 
             // Make the request

@@ -11,8 +11,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Class used to create the logic database representation of a file in the gobox environment.
- * This class can also be used with Gson to serialize an instance in json or viceversa
+ * This class is used as a reference to the file in the storage databases. It is not intended to use as a replacement
+ * for the java File class. The only few method that are used to reference the filesystem file are thos that works with
+ * the prefix.
  *
  * @author Degiacomi Simone
  * Created on 24/12/2015.
@@ -78,26 +79,27 @@ public class GBFile {
     private long size;
 
     /**
-     * Prefix of the absolute path of the file
+     * Prefix of the absolute path of the file in the current client. This is client dipendent, so it's not serialized
+     * in the json representation
      */
     private transient String prefix;
 
     /**
-     * Name of the file
+     * Name of the file (with the extension, without the path)
      */
     @DatabaseField(canBeNull = false)
     @Expose
     private String name;
 
     /**
-     * Date of the creation of this file
+     * Date of the creation of this file (UTC)
      */
     @DatabaseField(columnName = "creation")
     @Expose
     private long creationDate;
 
     /**
-     * Date of the last update of this file
+     * Date of the last update of this file (UTC)
      */
     @DatabaseField(columnName = "last_update")
     @Expose
@@ -106,20 +108,20 @@ public class GBFile {
     /**
      * Path of the file.
      * NOTE that this path doesn't contains this file as last file, because Gson doesn't like this... so i need to add
-     * the file every time the {@link #getPathAsList()} method is called
+     * the file every time the {@link #getPathAsList()} method is called.
      */
     @Expose
     private List<GBFile> path;
 
     /**
-     * Type of file
+     * Type of file (mime)
      */
     @DatabaseField(columnName = "mime", dataType = DataType.STRING)
     @Expose
     private String mime;
 
     /**
-     * List of children of this file
+     * List of children of this file (null if this file is not a folder)
      */
     @Expose
     private List<GBFile> children;
@@ -129,6 +131,10 @@ public class GBFile {
      */
     public GBFile () { }
 
+    /**
+     * Create a enw GBFile given the id
+     * @param id ID of the file
+     */
     public GBFile (long id) {
         this(id, UNKNOWN_ID, null, false);
     }
@@ -151,6 +157,7 @@ public class GBFile {
      * NOTE that When you'll call the {@link #toFile()} method, you'll get a new instance of java.io.File equals to this.
      * @param file Java file representation of the file
      * @param prefix Prefix to remove from the path
+     * @deprecated This method will be removed, because brake the meaning of the database reference
      */
     public GBFile (File file, String prefix) {
         setAbsolutePathByString(file.toString(), prefix);
@@ -162,7 +169,7 @@ public class GBFile {
             if (isDirectory) {
                 children = new LinkedList<>();
                 for (File child : file.listFiles()) {
-                    children.add(new GBFile(child, prefix));
+                    children.add(this.generateChild(child.getName(), child.isDirectory()));
                 }
             }
         }
@@ -172,6 +179,7 @@ public class GBFile {
      * Create a new file starting from the java representation. This method work just like the {@link #GBFile(File, String)}
      * but doesn't remove anything from the path, so be careful
      * @param file Java representation of the file
+     * @deprecated This method will be removed, because brake the meaning of the database reference
      */
     public GBFile (File file) {
         this(file, null);
@@ -201,8 +209,9 @@ public class GBFile {
         this.ID = ID;
         this.fatherID = fatherID;
         this.isDirectory = isDirectory;
-        if (name != null)
+        if (name != null) {
             setName(name);
+        }
     }
 
     /**
@@ -283,10 +292,7 @@ public class GBFile {
      * @param name Name of the file
      */
     public void setName(String name) {
-        if (name.contains("/"))
-            setPathByString(name);
-        else
-            this.name = name;
+        this.name = name.contains("/") ? setPathByString(name) : name;
     }
 
     /**
@@ -337,6 +343,8 @@ public class GBFile {
      * @return The new generated file, son of this file
      */
     public GBFile generateChild (String name, boolean isDirectory) {
+        if (fatherID == UNKNOWN_ID || ID == UNKNOWN_ID)
+            throw new IllegalStateException("This file doesn't know his ID/father ID");
 
         // Assert that this file is a folder
         if (!this.isDirectory)
@@ -444,12 +452,12 @@ public class GBFile {
      * @param pieces New path of the file.
      */
     public void setPathByList (List<GBFile> pieces) {
-        this.path = pieces;
+        path = pieces;
 
         // Remove this file from the path
         GBFile myself = pieces.remove(pieces.size() - 1);
 
-        this.name = myself.name;
+        name = myself.name;
     }
 
     /**
@@ -491,13 +499,13 @@ public class GBFile {
      * Set the relative (to the gobox files folder) path and the name of this file.
      * NOTE that this string must contain the name of this file at the end
      * @param pathString Path of this file
+     * @return Name of the file
      */
-    public void setPathByString (String pathString) {
+    public String setPathByString (String pathString) {
         path = new LinkedList<>();
 
         if (pathString.length() <= 0 || (pathString.length() == 1 && pathString.charAt(0) == '/') ) {
-            this.name = pathString;
-            return;
+            return (name = pathString);
         }
 
         String[] stringPieces = pathString.split("/");
@@ -505,7 +513,7 @@ public class GBFile {
         for(int i = 0; i < stringPieces.length - 1 ;i++)
             path.add(new GBFile(stringPieces[i], true));
 
-        this.name = stringPieces[stringPieces.length - 1];
+        return (name = stringPieces[stringPieces.length - 1]);
     }
 
     /**

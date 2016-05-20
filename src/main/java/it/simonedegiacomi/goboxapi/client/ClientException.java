@@ -25,8 +25,6 @@ public class ClientException extends Exception {
 
     @Override
     public String toString() {
-        return "ClientException{" +
-                "message='" + message + '\'' +
-                '}';
+        return message;
     }
 }

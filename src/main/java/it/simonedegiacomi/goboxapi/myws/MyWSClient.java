@@ -16,9 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.*;
 
 /**
  * This is an implementation of handlers socket based onEvent
@@ -30,6 +28,7 @@ import java.util.concurrent.FutureTask;
  */
 public class MyWSClient {
 
+    // TODO: Check if used
     public static final int DEFAULT_PING_INTERVAL = 30 * 1000;
 
     /**
@@ -37,7 +36,10 @@ public class MyWSClient {
      */
     private static final Logger log = Logger.getLogger(MyWSClient.class.getName());
 
-    private final static WebSocketFactory factory = new WebSocketFactory();
+    /**
+     * Websocket factory
+     */
+    private static final WebSocketFactory factory = new WebSocketFactory();
 
     /**
      * Web Socket connection
@@ -49,7 +51,10 @@ public class MyWSClient {
      */
     private boolean connected = false;
 
-    final JsonParser parser = new JsonParser();
+    /**
+     * Parser for incoming json
+     */
+    private final JsonParser parser = new JsonParser();
 
     /**
      * Map that contains the events listener. A event is formed by a event
@@ -81,14 +86,14 @@ public class MyWSClient {
     /**
      * Executor used to use the java FutureTask
      */
-    private final ExecutorService executor = Executors.newFixedThreadPool(6);
+    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 8, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(8));
 
     /**
      * Create a new client without connecting to the sever
      *
      * @param uri URI of the server
      */
-    public MyWSClient(URI uri) throws IOException {
+    public MyWSClient (URI uri) throws IOException {
 
         // Initialize the maps
         events = new HashMap<>();
@@ -100,7 +105,9 @@ public class MyWSClient {
         server.addListener(new WebSocketAdapter() {
             @Override
             public void onTextMessage(WebSocket websocket, final String message) throws Exception {
-                new Thread(new Runnable() {
+
+                executor.submit(new Runnable() {
+
                     @Override
                     public void run() {
                         // Parse the message
@@ -164,7 +171,7 @@ public class MyWSClient {
                         }
                         server.sendText(response.toString());
                     }
-                }).start();
+                });
             }
 
             @Override
@@ -214,8 +221,12 @@ public class MyWSClient {
     /**
      * Start the connection to the server
      */
-    public void connect() throws WebSocketException {
-        server.connect();
+    public void connect() throws WSException {
+        try {
+            server.connect();
+        } catch (WebSocketException ex) {
+            throw new WSException(ex.toString());
+        }
     }
 
     /**

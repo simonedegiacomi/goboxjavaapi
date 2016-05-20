@@ -9,6 +9,10 @@ import com.google.gson.GsonBuilder;
  */
 public class MyGsonBuilder {
 
+    /**
+     * Generate a new gson object configured with the gobox settings
+     * @return New gson object
+     */
     public static Gson create () {
 
         // Create a new Gson Builder

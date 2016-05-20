@@ -1,9 +1,12 @@
 package it.simonedegiacomi.goboxapi.authentication;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.annotations.Expose;
 import com.google.gson.stream.JsonReader;
 import it.simonedegiacomi.goboxapi.myws.MyWSClient;
+import it.simonedegiacomi.goboxapi.utils.MyGsonBuilder;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -15,53 +18,76 @@ import java.util.Set;
 
 /**
  * The object of this class contains the credentials of a GoBoxAccount. To use any of the API of this package you need
- * this object. Auth also provides the necessary methods to talk with the server to check the data.
+ * this object. GBAuth also provides the necessary methods to talk with the server to check the data.
  *
  * Created on 31/12/15.
  *
  * @author Degiacomi Simone
  */
-public class Auth {
+public class GBAuth {
 
     /**
      * Type of session: client or storage mode
      */
     public enum Modality {
-        CLIENT, STORAGE
+
+        /**
+         * Mode to authenticate as a client
+         */
+        CLIENT,
+
+        /**
+         * Mode to authenticate as a storage
+         */
+        STORAGE
     }
+
+    /**
+     * URLs of the environment.
+     */
+    private static final URLBuilder urls = URLBuilder.DEFAULT;
+
+    /**
+     * Gson used to serialize the instance of this object in json
+     */
+    private final Gson gson = MyGsonBuilder.create();
 
     /**
      * The current mode
      */
+    @Expose
     private Modality mode;
 
     /**
      * Username
      */
+    @Expose
     private String username;
-
-    /**
-     * URLs of the environment. This is transient because it shouldn't be serialized
-     */
-    private static URLBuilder urls;
 
     /**
      * Token to use to authenticate with the server
      */
+    @Expose
     private String token;
 
     /**
-     * Set of listeners to call when the token change
+     * Set of listeners to call when the token changes
      */
     private final Set<Runnable> tokenListeners = new HashSet<>();
 
     /**
-     * Let you to set the url builder that will be used to connect to the server
-     *
-     * @param builder Urls of the environment
+     * Empty constructor for gson
      */
-    public static void setUrlBuilder(URLBuilder builder) {
-        urls = builder;
+    public GBAuth() {}
+
+    /**
+     * Create a new auth token given the username and the last used token
+     * @param username Username
+     * @param token Token
+     */
+    public GBAuth(String username, String token) {
+        this.username = username;
+        this.token = token;
     }
 
     /**
@@ -72,15 +98,11 @@ public class Auth {
      */
     public boolean login (String password) throws IOException {
 
-        // Assert that the url builder is set
-        if (urls == null)
-            throw new IllegalStateException("url builder is null");
+        // Serialize this object to json
+        JsonObject authJson = gson.toJsonTree(this, GBAuth.class).getAsJsonObject();
 
-        // Create the json of the authentication
-        JsonObject authJson = new JsonObject();
-        authJson.addProperty("username", username);
+        // Add password field
         authJson.addProperty("password", password);
-        authJson.addProperty("type", mode == Modality.CLIENT ? 'C' : 'S');
 
         // Make the https request
         HttpsURLConnection conn = (HttpsURLConnection) urls.get("login").openConnection();
@@ -110,14 +132,13 @@ public class Auth {
     }
 
     /**
-     * Check if the token of the object is valid. This method block the thread until the response from the server is retrieved.
+     * Check if the token of the object is valid. This method block the thread until the response from the server is
+     * retrieved.
      *
      * @return true if the token is valid, false otherwise
      * @throws IOException Network errors
      */
-    public boolean check() throws IOException {
-        if (urls == null)
-            throw new IllegalStateException("url builder is null");
+    public boolean check () throws IOException {
 
         // Prepare the connection
         HttpsURLConnection conn = (HttpsURLConnection) urls.get("authCheck").openConnection();
@@ -145,33 +166,49 @@ public class Auth {
         return true;
     }
 
+    /**
+     * Return the current mode of this auth
+     * @return current mode
+     */
     public Modality getMode() {
         return mode;
     }
 
+    /**
+     * Set the mode of this auth object.
+     * @param mode Current mode
+     */
     public void setMode(Modality mode) {
         this.mode = mode;
     }
 
+    /**
+     * Set the username for this auth object
+     * @param username Username
+     */
     public void setUsername(String username) {
         this.username = username;
     }
 
+    /**
+     * Return the current auth token
+     * @return Authentication token
+     */
     public String getToken() {
         return token;
     }
 
-    /**
-     * Set the token and call all the listeners
-     *
-     * @param token New token
-     */
-    public void setToken(String token) {
-        this.token = token;
-        for (Runnable listener : tokenListeners)
+    public void setToken (String newToken) {
+        this.token = newToken;
+        for (Runnable listener : tokenListeners) {
             listener.run();
+        }
     }
 
+    /**
+     * Return the username of this auth object
+     * @return Username
+     */
     public String getUsername() {
         return username;
     }
@@ -181,7 +218,7 @@ public class Auth {
      *
      * @param conn Connection to authorize
      */
-    public void authorize(HttpURLConnection conn) {
+    public void authorize (HttpURLConnection conn) {
         conn.setRequestProperty("Authorization", getHeaderToken());
     }
 
@@ -190,7 +227,7 @@ public class Auth {
      *
      * @param server Websocket to authorize
      */
-    public void authorizeWs(MyWSClient server) {
+    public void authorize (MyWSClient server) {
         server.addHttpHeader("Authorization", getHeaderToken());
     }
 

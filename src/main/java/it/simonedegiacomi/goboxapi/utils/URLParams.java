@@ -18,8 +18,6 @@ import java.util.Map;
  */
 public class URLParams {
 
-
-
     /**
      * Create a new URL with the parameters form a url
      * as string and the arguments as JSONObject

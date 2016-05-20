@@ -12,14 +12,26 @@ import java.util.List;
  * @author Degiacomi Simone
  * Created on 02/01/2016.
  */
-public abstract class Client {
+public abstract class GBClient {
 
     /**
      * Possible state of the client
      */
     public enum ClientState {
-        INIT,
+
+        /**
+         * The client is initializing itself
+         */
+        INITIALIZING,
+
+        /**
+         * The client is ready to use
+         */
         READY,
+
+        /**
+         * The client needs to be initialized
+         */
         NOT_READY
     }
 
@@ -38,14 +50,15 @@ public abstract class Client {
     public abstract ClientState getState ();
 
     /**
-     * Init the client
+     * Initialize the client
      * @return True if the client in now ready
-     * @throws ClientException
+     * @throws ClientException Exception thrown while initializing the client
      */
     public abstract boolean init () throws ClientException;
 
     /**
      * Close the connection with the storage and release all the resources.
+     * After the client is turned off, it can be reused after recalling {@link #init()}
      */
     public abstract void shutdown () throws ClientException;
 

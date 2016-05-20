@@ -11,8 +11,7 @@ import java.net.URL;
 import java.util.Properties;
 
 /**
- * This object is used to store the url to use in the program.
- * It also can create new url appending parameters to the url.
+ * This object is used to store the urls to use by the client and other GoBox API classes.
  *
  * Created on 09/01/16.
  * @author Degiacomi Simone
@@ -20,37 +19,41 @@ import java.util.Properties;
 public class URLBuilder {
 
     /**
-     * Name of the file with default url
+     * Default empty url builder
      */
-    private static final String DEFAULT_URLS_LOCATION = "/urls.properties";
+    public static final URLBuilder DEFAULT = new URLBuilder();
 
     /**
-     * Properties that contains the url
+     * Name of the default file in the resources folder
+     */
+    public static final String DEFAULT_URLS_LOCATION = "/urls.properties";
+
+    /**
+     * Properties that contains the urls
      */
     private final Properties properties = new Properties();
 
     /**
      * Load the urls from the specified input stream
      * @param in Stream to which read the properties
-     * @throws IOException
+     * @throws IOException  Exception while loading the urls
      */
     public void load (InputStream in) throws IOException {
         properties.load(in);
     }
 
     /**
-     * Load the url builder with the default url
-     * @throws IOException
+     * Load the url builder with the default file in the resources folder
+     * @throws IOException Exception while loading the urls
      */
-    public void load () throws IOException {
+    public void init () throws IOException {
         load(URLBuilder.class.getResourceAsStream(DEFAULT_URLS_LOCATION));
     }
 
     /**
      * Return a new url specifying the key
-     * @param what The key (name of the url)
-     * @return Corresponding url. If the url doesn't
-     * exist a null pointer will be returned
+     * @param what The key (alias of the url)
+     * @return Corresponding url. If the url doesn't exist a null pointer will be returned
      */
     public URL get (String what) {
         try {
@@ -74,18 +77,10 @@ public class URLBuilder {
     }
 
     /**
-     * Return the specified url in string
-     * @param what Name of the url
-     * @return Url in string
-     */
-    public String getAsString (String what) {
-        return get(what).toString();
-    }
-
-    /**
      * Return a new url with the specified parameters serialized in the url as query parameters.
-     * This method is an alias for {@link #get(String, JsonObject, boolean)}
-     * @param what Key of the url
+     * this method work only for string json property.
+     * This method is an alias for {@link #get(String, JsonObject, boolean)}, called with false as last parameter
+     * @param what Alias of the url
      * @param params Parameters to append to the url
      * @return URL with the specified parameters serialized in query parameters.
      */
@@ -101,7 +96,7 @@ public class URLBuilder {
      * Return a new url with the specified parameters serialized in query parameters
      *
      * Example: http://domain.com?json={"key"="value"}
-     * @param what Key of the url
+     * @param what Alias of the url
      * @param params Parameters to serialize
      * @param singleParam If true all the json will be serialized in only a single query string filed named 'json'
      * @return Url with the specified parameters
@@ -116,7 +111,7 @@ public class URLBuilder {
 
     /**
      * Add a new url to the internal map
-     * @param key Name of the url
+     * @param key Alias of the url
      * @param url Url
      */
     public void addUrl (String key, URL url) {
@@ -125,7 +120,7 @@ public class URLBuilder {
 
     /**
      * Remove the specified url from the internal map
-     * @param key Url to remove
+     * @param key Alias of the url to remove
      */
     public void removeUrl (String key) {
         properties.remove(key);
