@@ -343,8 +343,8 @@ public class GBFile {
      * @return The new generated file, son of this file
      */
     public GBFile generateChild (String name, boolean isDirectory) {
-        if (fatherID == UNKNOWN_ID || ID == UNKNOWN_ID)
-            throw new IllegalStateException("This file doesn't know his ID/father ID");
+        if (ID == UNKNOWN_ID)
+            throw new IllegalStateException("This file doesn't know his ID");
 
         // Assert that this file is a folder
         if (!this.isDirectory)

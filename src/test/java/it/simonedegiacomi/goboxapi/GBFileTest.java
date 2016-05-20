@@ -115,8 +115,14 @@ public class GBFileTest {
         String fatherName = "/documents/";
         GBFile father = new GBFile(fatherName, true);
 
+        // Set some fake id
+        father.setFatherID(GBFile.ROOT_FATHER_ID);
+        father.setID(52);
+
         String childPath = "/documents/pdf";
         GBFile child = father.generateChild("pdf", true);
+
+        child.setID(53);
 
         assertEquals(childPath, child.getPathAsString());
 
