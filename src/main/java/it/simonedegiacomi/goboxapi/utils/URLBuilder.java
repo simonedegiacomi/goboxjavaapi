@@ -57,7 +57,7 @@ public class URLBuilder {
      */
     public URL get (String what) {
         try {
-            return new URL(properties.getProperty(what));
+            return getURI(what).toURL();
         } catch (MalformedURLException ex) {
             return null;
         }
@@ -69,10 +69,25 @@ public class URLBuilder {
      * @return Uri
      */
     public URI getURI (String what) {
+        assertInitialized();
         try {
             return new URI(properties.getProperty(what));
         } catch (URISyntaxException ex) {
             return null;
+        }
+    }
+
+    /**
+     * Assert that the this object is initialized. if it's not (if there's no urls) try to call init.
+     * If this fails, a new IllegalStateException is throws
+     */
+    private void assertInitialized () {
+        if (properties.size() <= 0) {
+            try {
+                init();
+            } catch (IOException e) {
+                throw new IllegalStateException("default initialization failed");
+            }
         }
     }
 
