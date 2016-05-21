@@ -238,10 +238,9 @@ public abstract class GBClient {
     /**
      * Move, Rename o Copy a file.
      * @param src Source file
-     * @param fatherDestination Destination folder
-     * @param newName Name of the moved (or copied) file
+     * @param dst Destination file
      * @param copy Copy or move
      * @throws ClientException
      */
-    public abstract void move (GBFile src, GBFile fatherDestination, String newName, boolean copy) throws ClientException;
+    public abstract void move (GBFile src, GBFile dst, boolean copy) throws ClientException;
 }

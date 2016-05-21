@@ -655,13 +655,10 @@ public class StandardGBClient extends GBClient {
     }
 
     @Override
-    public void move (GBFile src, GBFile fatherDst, String newName, boolean copy) throws ClientException {
+    public void move (GBFile src, GBFile dst, boolean copy) throws ClientException {
         JsonObject req = new JsonObject();
         req.add("src", gson.toJsonTree(src, GBFile.class));
-        req.add("dstFather", gson.toJsonTree(fatherDst, GBFile.class));
-        GBFile dstFile = new GBFile();
-        dstFile.setName(newName);
-        req.add("dst", gson.toJsonTree(dstFile, GBFile.class));
+        req.add("dst", gson.toJsonTree(dst, GBFile.class));
         req.addProperty("copy", copy);
         try {
             JsonObject res = server.makeQuery("copy", req).get().getAsJsonObject();
