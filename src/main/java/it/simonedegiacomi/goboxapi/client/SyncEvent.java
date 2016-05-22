@@ -157,4 +157,22 @@ public class SyncEvent implements Comparable {
     public int compareTo(Object o) {
         return o == this ? 0 : 1;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null)
+            return false;
+        if (!(o instanceof SyncEvent))
+            return false;
+
+        SyncEvent b = (SyncEvent) o;
+
+        if (b.kind != kind)
+            return false;
+        if (ID > 0 && b.ID > 0)
+            return ID == b.ID;
+
+        // Check if the file is the same
+        return file.equals(b.file);
+    }
 }

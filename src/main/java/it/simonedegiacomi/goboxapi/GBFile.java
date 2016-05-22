@@ -157,7 +157,6 @@ public class GBFile {
      * NOTE that When you'll call the {@link #toFile()} method, you'll get a new instance of java.io.File equals to this.
      * @param file Java file representation of the file
      * @param prefix Prefix to remove from the path
-     * @deprecated This method will be removed, because brake the meaning of the database reference
      */
     public GBFile (File file, String prefix) {
         setAbsolutePathByString(file.toString(), prefix);
@@ -166,12 +165,6 @@ public class GBFile {
         if (file.exists()) {
             this.isDirectory = file.isDirectory();
             this.lastUpdateDate = file.lastModified();
-            if (isDirectory) {
-                children = new LinkedList<>();
-                for (File child : file.listFiles()) {
-                    children.add(this.generateChild(child.getName(), child.isDirectory()));
-                }
-            }
         }
     }
 
@@ -179,7 +172,6 @@ public class GBFile {
      * Create a new file starting from the java representation. This method work just like the {@link #GBFile(File, String)}
      * but doesn't remove anything from the path, so be careful
      * @param file Java representation of the file
-     * @deprecated This method will be removed, because brake the meaning of the database reference
      */
     public GBFile (File file) {
         this(file, null);

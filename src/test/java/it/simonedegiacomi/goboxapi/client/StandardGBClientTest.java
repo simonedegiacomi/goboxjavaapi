@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
  * Created on 05/04/16.
  * @author Degiacomi Simone
  */
-public class ClientTest {
+public class StandardGBClientTest {
 
     private static final String USERNAME = "prova";
     private static final String PASSWORD = "prova";
