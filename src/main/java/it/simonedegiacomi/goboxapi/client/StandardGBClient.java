@@ -94,6 +94,11 @@ public class StandardGBClient extends GBClient {
     private final Set<SyncEventListener> listeners = new HashSet<>();
 
     /**
+     * Filter echo sync event
+     */
+    private boolean filterEcho = false;
+
+    /**
      * Listener for the disconnection
      */
     private DisconnectedListener disconnectedListener;
@@ -264,7 +269,7 @@ public class StandardGBClient extends GBClient {
                 SyncEvent event = gson.fromJson(data, SyncEvent.class);
 
                 // Check if this is the notification for a event that i've generated.
-                if (eventsToIgnore.remove(event.getRelativeFile().getPathAsString()))
+                if (eventsToIgnore.remove(event.getRelativeFile().getPathAsString()) && filterEcho)
                     // Because i've generated this event, i ignore it
                     return;
 
@@ -796,5 +801,13 @@ public class StandardGBClient extends GBClient {
 
         // Return the socket factory
         return sslContext.getSocketFactory();
+    }
+
+    /**
+     * Enable or disable filter for echo sync event
+     * @param echoFilter Echo filter status
+     */
+    public void setEchoFilter (boolean echoFilter) {
+        this.filterEcho = echoFilter
     }
 }
