@@ -24,6 +24,7 @@ import java.util.concurrent.*;
  * class add some feature like event handling and query
  * concept.
  * Created on 28/12/15.
+ *
  * @author Degiacomi Simone
  */
 public class MyWSClient {
@@ -92,8 +93,9 @@ public class MyWSClient {
      * Create a new client without connecting to the sever
      *
      * @param uri URI of the server
+     * @throws IOException Error while creating the ws socket with the websocket factory
      */
-    public MyWSClient (URI uri) throws IOException {
+    public MyWSClient(URI uri) throws IOException {
 
         // Initialize the maps
         events = new HashMap<>();
@@ -106,71 +108,68 @@ public class MyWSClient {
             @Override
             public void onTextMessage(WebSocket websocket, final String message) throws Exception {
 
-                executor.submit(new Runnable() {
+                executor.submit(() -> {
 
-                    @Override
-                    public void run() {
-                        // Parse the message
-                        JsonObject json = (JsonObject) parser.parse(message);
+                    // Parse the message
+                    JsonObject json = (JsonObject) parser.parse(message);
 
-                        String event = json.get("event").getAsString();
+                    String event = json.get("event").getAsString();
 
-                        // If the message has not the queryId parameter
-                        // is an simple event
-                        if (!json.has("_queryId") || json.get("_queryId").getAsString().length() <= 0) {
-                            if (!events.containsKey(event)) {
-                                log.warn("Received unknown event: " + event);
-                                return;
-                            }
-
-                            events.get(event).onEvent(json.get("data"));
-
+                    // If the message has not the queryId parameter
+                    // is an simple event
+                    if (!json.has("_queryId") || json.get("_queryId").getAsString().length() <= 0) {
+                        if (!events.containsKey(event)) {
+                            log.warn("Received unknown event: " + event);
                             return;
                         }
 
-                        // get the _queryId
-                        String queryId = json.get("_queryId").getAsString();
+                        events.get(event).onEvent(json.get("data"));
 
-                        // Now, check if is a query response
-                        // If is a query response i MUST have an listener onEvent the
-                        // 'queryResponse' map, so check here:
-                        if (event.equals("queryResponse")) {
-
-                            if (!queryResponses.containsKey(queryId)) {
-                                log.warn("Unknown query response received");
-                                return;
-                            }
-
-                            // Get and remove the response listener
-                            queryResponses.remove(queryId).onResponse(json.get("data"));
-                            return;
-                        }
-
-                        // If is not a query response neither, is a query made to this program, so
-                        // find the object that will answer this query.
-
-                        if (!queryAnswers.containsKey(event)) {
-                            log.warn("Unknown query received: " + event);
-                            return;
-                        }
-
-                        // Prepare the response with teh same query Id
-                        JsonObject response = new JsonObject();
-                        response.addProperty("event", "queryResponse");
-                        response.addProperty("_queryId", json.get("_queryId").getAsString());
-
-                        // Call the handler
-                        try {
-                            JsonElement answer = queryAnswers.get(event).onQuery(json.get("data"));
-                            response.add("data", answer);
-                        } catch (Exception ex) {
-                            log.warn("WS Query Handler Exception: " + ex.toString());
-                            JsonObject errorAnswer = new JsonObject();
-                            errorAnswer.addProperty("error", ex.toString());
-                            response.add("data", errorAnswer);
-                        }
-                        server.sendText(response.toString());
+                        return;
                     }
+
+                    // get the _queryId
+                    String queryId = json.get("_queryId").getAsString();
+
+                    // Now, check if is a query response
+                    // If is a query response i MUST have an listener onEvent the
+                    // 'queryResponse' map, so check here:
+                    if (event.equals("queryResponse")) {
+
+                        if (!queryResponses.containsKey(queryId)) {
+                            log.warn("Unknown query response received");
+                            return;
+                        }
+
+                        // Get and remove the response listener
+                        queryResponses.remove(queryId).onResponse(json.get("data"));
+                        return;
+                    }
+
+                    // If is not a query response neither, is a query made to this program, so
+                    // find the object that will answer this query.
+
+                    if (!queryAnswers.containsKey(event)) {
+                        log.warn("Unknown query received: " + event);
+                        return;
+                    }
+
+                    // Prepare the response with teh same query Id
+                    JsonObject response = new JsonObject();
+                    response.addProperty("event", "queryResponse");
+                    response.addProperty("_queryId", json.get("_queryId").getAsString());
+
+                    // Call the handler
+                    try {
+                        JsonElement answer = queryAnswers.get(event).onQuery(json.get("data"));
+                        response.add("data", answer);
+                    } catch (Exception ex) {
+                        log.warn("WS Query Handler Exception: " + ex.toString());
+                        JsonObject errorAnswer = new JsonObject();
+                        errorAnswer.addProperty("error", ex.toString());
+                        response.add("data", errorAnswer);
+                    }
+                    server.sendText(response.toString());
                 });
             }
 
@@ -209,10 +208,10 @@ public class MyWSClient {
      * This static method allows you to set a proxy that will be used
      * for the new instances of this class
      *
-     * @param ip   IP of the proxy
+     * @param host IP of the proxy
      * @param port Port of the proxy
      */
-    public static void setProxy(String host, int port) {
+    public static void setProxy (String host, int port) {
         ProxySettings proxy = factory.getProxySettings();
         proxy.setHost(host);
         proxy.setPort(port);
@@ -220,6 +219,8 @@ public class MyWSClient {
 
     /**
      * Start the connection to the server
+     *
+     * @throws WSException Error while connecting to the server
      */
     public void connect() throws WSException {
         try {
@@ -350,8 +351,8 @@ public class MyWSClient {
     /**
      * Send a new event
      *
-     * @param event     Name of the event
-     * @param data      Data that will be sent with the event
+     * @param event Name of the event
+     * @param data  Data that will be sent with the event
      */
     public void sendEvent(String event, JsonElement data) {
         JsonObject json = new JsonObject();
@@ -403,7 +404,7 @@ public class MyWSClient {
     /**
      * Disconnect the websocket client
      */
-    public void disconnect () {
+    public void disconnect() {
         server.disconnect();
     }
 }

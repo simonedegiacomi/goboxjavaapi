@@ -19,9 +19,8 @@ public class WSCallable implements Callable<JsonElement> {
     private JsonElement response;
 
     /**
-     * Set the response. This method must be called befor execute the
-     * call method
-     * @param response
+     * Set the response. This method must be called before execute the call method
+     * @param response Response
      */
     public void setResponse (JsonElement response) {
         this.response = response;

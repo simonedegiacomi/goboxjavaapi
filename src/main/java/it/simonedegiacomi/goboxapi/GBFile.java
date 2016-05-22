@@ -224,7 +224,7 @@ public class GBFile {
 
     /**
      * Set the ID of the father.
-     * @param fatherID ID of the father
+     * @param newFatherID ID of the father
      */
     public void setFatherID(long newFatherID) {
         this.fatherID = newFatherID;
@@ -510,7 +510,7 @@ public class GBFile {
 
     /**
      * Set the absolute prefix, relative (to the gobox files folder) path and name of this file.
-     * @param pathString Absolute path of the file
+     * @param rawPathString Absolute path of the file
      * @param prefix Prefix to remove from the absolute path of the file to get the relative path of the gobox files folder
      */
     public void setAbsolutePathByString (String rawPathString, String prefix) {
@@ -535,7 +535,7 @@ public class GBFile {
 
     /**
      * Return the children of this file
-     * @return
+     * @return List of children
      */
     public List<GBFile> getChildren() {
         return children;

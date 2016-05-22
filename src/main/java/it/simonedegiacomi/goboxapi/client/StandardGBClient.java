@@ -132,7 +132,7 @@ public class StandardGBClient extends GBClient {
     /**
      * Check if the client is connected to the storage
      *
-     * @return
+     * @return true if the client is ready to use
      */
     @Override
     public boolean isReady() {
@@ -327,7 +327,8 @@ public class StandardGBClient extends GBClient {
      *
      * @param file   File to send File to send. The object must have or the field father id or the path.
      * @param stream Stream of the file Stream that will be sent to the storage
-     * @throws ClientException
+     * @throws ClientException Error uploading the file
+     * @throws IOException Stream error
      */
     @Override
     public void uploadFile(GBFile file, InputStream stream) throws ClientException, IOException {

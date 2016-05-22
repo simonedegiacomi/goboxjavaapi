@@ -33,7 +33,7 @@ public class SimpleUDP {
      * Send a broadcast udp packet
      * @param port Port to which send the broadcast packet
      * @param requestBytes Message to send with the packet
-     * @throws IOException
+     * @throws IOException IO error
      */
     public void sendBroadcastPacket(int port, byte[] requestBytes) throws IOException {
 
@@ -67,8 +67,8 @@ public class SimpleUDP {
     /**
      * Receive a udp packet. This method has a timeout of 2 seconds
      * @return Received udp packet
-     * @throws SocketException
-     * @throws IOException
+     * @throws SocketException Socket error
+     * @throws IOException IO error
      */
     public DatagramPacket receive () throws SocketException, IOException{
 

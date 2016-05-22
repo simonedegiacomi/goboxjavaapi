@@ -1,39 +1,40 @@
 package it.simonedegiacomi.goboxapi;
 
-import it.simonedegiacomi.goboxapi.utils.URLBuilder;
+import it.simonedegiacomi.IntegrationTest;
+import it.simonedegiacomi.goboxapi.authentication.GBAuth;
+import it.simonedegiacomi.goboxapi.authentication.PropertiesAuthLoader;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Degiacomi Simone
  * Created on 29/03/16.
  */
+@Category(IntegrationTest.class)
 public class GBAuthTest {
 
-    private String username = "testAccount";
-    private String password = "testPassword";
-
     @Test
-    public void failAuth () throws IOException {
-        URLBuilder.DEFAULT.init();
-//        GBAuth auth = new GBAuth();
-//        auth.setUsername("abc");
-//        boolean logged = auth.login("123");
-//
-//        assertFalse(logged);
+    public void login () throws IOException {
+        //GBAuth auth = PropertiesAuthLoader.loadAuth("src/test/resources/client_auth.properties");
+        //assertNotNull(auth);
     }
 
     @Test
-    public void auth () throws IOException {
-//        GBAuth auth = new GBAuth();
-//        auth.setUsername(username);
-//        boolean logged = auth.login(password);
+    public void loginWithToken () throws IOException {
+//        GBAuth auth = PropertiesAuthLoader.loadAuth("src/test/resources/client_auth.properties");
 //
-//        assertTrue(logged);
+//
+//        // Re login
+//        GBAuth newAuth = new GBAuth();
+//        newAuth.setUsername(auth.getUsername());
+//        newAuth.setMode(auth.getMode());
+//        newAuth.setToken(auth.getToken());
+//
+//        // check the token
+//        assertTrue(newAuth.check());
     }
-
 }

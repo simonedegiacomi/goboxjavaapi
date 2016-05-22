@@ -45,7 +45,7 @@ public abstract class GBClient {
 
     /**
      * Return the current state of the client.
-     * @return
+     * @return State of the client
      */
     public abstract ClientState getState ();
 
@@ -59,6 +59,7 @@ public abstract class GBClient {
     /**
      * Close the connection with the storage and release all the resources.
      * After the client is turned off, it can be reused after recalling {@link #init()}
+     * @throws ClientException Error while turning off the client
      */
     public abstract void shutdown () throws ClientException;
 
@@ -81,7 +82,7 @@ public abstract class GBClient {
      * @param action Action
      * @param file File
      * @param preview Preview
-     * @return
+     * @return URL of the file
      */
     public abstract URL getUrl (TransferProfile.Action action, GBFile file, boolean preview);
 
@@ -96,6 +97,7 @@ public abstract class GBClient {
      * @param file File to retrieve.
      * @throws ClientException Exception thrown in case of invalid id, network error or io error while saving the
      * file to the disk
+     * @throws IOException network exception or local io exception
      */
     public void getFile (GBFile file) throws ClientException, IOException {
 
@@ -117,8 +119,8 @@ public abstract class GBClient {
      * NOTE that this method doesn't close the stream
      * @param file File to download
      * @param dst Destination of the input stream of the file
-     * @throws ClientException Exception thrown in case of
-     * invalid id or network error
+     * @throws ClientException Exception thrown in case of invalid id or network error
+     * @throws IOException Error stream i/o
      */
     public abstract void getFile (GBFile file, OutputStream dst) throws ClientException, IOException;
 
@@ -136,14 +138,15 @@ public abstract class GBClient {
      * @param file File to send File to send. The object must have or the field father id or the path.
      * @param stream Stream of the file Stream that will be sent to the storage
      * @throws ClientException Exception Network error or invalid father reference
+     * @throws IOException i/o stream error
      */
     public abstract void uploadFile (GBFile file, InputStream stream) throws ClientException, IOException;
 
     /**
      * Same ad uploadFile(GBFile, InputStream) but this read the file from the path of the GBFile
      * @param file File to send
-     * @throws ClientException Exception Network error, null file or invalid
-     * father reference
+     * @throws ClientException Exception Network error, null file or invalid father reference
+     * @throws IOException i/o stream error
      */
     public void uploadFile (GBFile file) throws ClientException, IOException {
         InputStream in =new FileInputStream(file.toFile());
@@ -155,16 +158,16 @@ public abstract class GBClient {
      * Move a file from/to the trash.
      * @param file File to move
      * @param toTrash True to move the file in the trash, false otherwise
-     * @throws ClientException
+     * @throws ClientException Error trashing the file
      */
     public abstract void trashFile (GBFile file, boolean toTrash) throws ClientException;
 
     /**
-     * Move a file to/from the trash using {@link #isTrashed} method. This method is an alias for
+     * Move a file to/from the trash using isTrash GBFile method. This method is an alias for
      * {@link #trashFile(GBFile, boolean)}.
      * This file doesn't change the local file system
-     * @param file file
-     * @throws ClientException
+     * @param file file File to trash
+     * @throws ClientException Error trashing the file
      */
     public void trashFile (GBFile file) throws ClientException {
         trashFile(file, file.isTrashed());
@@ -193,7 +196,7 @@ public abstract class GBClient {
     /**
      * Return the list of the shared files
      * @return List of the shared files
-     * @throws ClientException
+     * @throws ClientException Error getting the shared files list
      */
     public abstract List<GBFile> getSharedFiles () throws ClientException;
 
@@ -201,7 +204,7 @@ public abstract class GBClient {
      * Share o stop sharing a file
      * @param file File to share
      * @param share True to share, false to stop sharing
-     * @throws ClientException
+     * @throws ClientException Error sharing the file
      */
     public abstract void share (GBFile file, boolean share) throws ClientException;
 
@@ -209,7 +212,7 @@ public abstract class GBClient {
      * Make a search in the storage
      * @param filter Filter of the query
      * @return List of matching files
-     * @throws ClientException
+     * @throws ClientException Error search files
      */
     public abstract List<GBFile> getFilesByFilter (GBFilter filter) throws ClientException;
 
@@ -218,20 +221,20 @@ public abstract class GBClient {
      * @param from Offset of the result list
      * @param size Limit of the result list
      * @return List with the recent files
-     * @throws ClientException
+     * @throws ClientException Error getting recent files list
      */
     public abstract List<SyncEvent> getRecentFiles (long from, long size) throws ClientException;
 
     /**
      * Return a list of the trashed files
      * @return List with the trashed files
-     * @throws ClientException
+     * @throws ClientException Error getting the trashed files list
      */
     public abstract List<GBFile> getTrashedFiles () throws ClientException;
 
     /**
      * Empty the trash
-     * @throws ClientException
+     * @throws ClientException Error emptying the trash
      */
     public abstract void emptyTrash () throws ClientException;
 
@@ -240,7 +243,7 @@ public abstract class GBClient {
      * @param src Source file
      * @param dst Destination file
      * @param copy Copy or move
-     * @throws ClientException
+     * @throws ClientException Error moving/copying the file
      */
     public abstract void move (GBFile src, GBFile dst, boolean copy) throws ClientException;
 }

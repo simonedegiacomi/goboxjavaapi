@@ -92,7 +92,7 @@ public class GBAuth {
 
     /**
      * Try to login with the information set. This method will block the thread until the login is complete.
-     *
+     * @param password Password of the account
      * @return true if the user is logged, false if the credentials aren't valid
      * @throws IOException Network error
      */

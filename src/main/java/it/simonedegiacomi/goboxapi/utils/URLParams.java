@@ -24,7 +24,7 @@ public class URLParams {
      * @param stringUrl base url
      * @param params parameters to add in the url
      * @return new url with the parameters
-     * @throws MalformedURLException
+     * @throws MalformedURLException Error while encoding parameters
      */
     public static URL createURL (String stringUrl, JsonObject params) throws MalformedURLException {
 
@@ -69,7 +69,7 @@ public class URLParams {
      * @param url url
      * @param params parameters as JSONObject
      * @return The new url with the parameters
-     * @throws MalformedURLException
+     * @throws MalformedURLException Error encoding the parameters
      */
     public static URL createURL (URL url, JsonObject params) throws MalformedURLException {
         return createURL(url.toString(), params);
