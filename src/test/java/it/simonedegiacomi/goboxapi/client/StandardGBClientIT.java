@@ -20,7 +20,7 @@ import static org.junit.Assert.fail;
  * Created on 05/04/16.
  * @author Degiacomi Simone
  */
-public class StandardGBClientTest {
+public class StandardGBClientIT {
 
     private StandardGBClient client;
     private CountDownLatch countDownLatch;
