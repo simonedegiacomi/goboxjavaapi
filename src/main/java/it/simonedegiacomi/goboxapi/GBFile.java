@@ -148,6 +148,7 @@ public class GBFile {
      */
     public GBFile (String name, boolean isDirectory) {
         this(UNKNOWN_ID, UNKNOWN_ID, name, isDirectory);
+        setIsDirectory(isDirectory);
     }
 
     /**
@@ -163,8 +164,7 @@ public class GBFile {
 
         // If the file exist, check if it's a folder
         if (file.exists()) {
-            this.isDirectory = file.isDirectory();
-            this.lastUpdateDate = file.lastModified();
+            setIsDirectory(file.isDirectory());
         }
     }
 
@@ -200,7 +200,7 @@ public class GBFile {
 
         this.ID = ID;
         this.fatherID = fatherID;
-        this.isDirectory = isDirectory;
+        setIsDirectory(isDirectory);
         if (name != null) {
             setName(name);
         }
@@ -220,6 +220,12 @@ public class GBFile {
      */
     public void setID(long ID) {
         this.ID = ID;
+    }
+
+    private void setIsDirectory (boolean isDirectory) {
+        if ((this.isDirectory = isDirectory)) {
+            children = new LinkedList<>();
+        }
     }
 
     /**

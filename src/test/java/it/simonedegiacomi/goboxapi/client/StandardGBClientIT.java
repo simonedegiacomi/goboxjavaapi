@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import it.simonedegiacomi.IntegrationTest;
 import it.simonedegiacomi.goboxapi.authentication.PropertiesAuthLoader;
 import it.simonedegiacomi.goboxapi.GBFile;
+import it.simonedegiacomi.goboxapi.myws.MyWSClient;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -34,8 +35,14 @@ public class StandardGBClientIT {
 
     @Before
     public void init () throws IOException, ClientException {
+        MyWSClient.setProxy("127.0.0.1", 3128);
+        System.setProperty("http.proxyHost", "127.0.0.1");
+        System.setProperty("http.proxyPort", "3128");
+        System.setProperty("https.proxyHost", "127.0.0.1");
+        System.setProperty("https.proxyPort", "3128");
+
         org.apache.log4j.BasicConfigurator.configure();
-        client = new StandardGBClient(PropertiesAuthLoader.loadAndLoginFromFile(new File("client_auth.properties")));
+        client = new StandardGBClient(PropertiesAuthLoader.loadAndLoginFromFile(new File(getClass().getResource("/client_auth.properties").getFile())));
         client.init();
     }
 
@@ -116,6 +123,12 @@ public class StandardGBClientIT {
     }
 
     @Test
+    public void createfolderUsingPath () {
+        // TODO: implement
+        fail();
+    }
+
+    @Test
     public void createAndDeleteFolder () throws ClientException {
         countDownLatch = new CountDownLatch(3);
 
@@ -192,10 +205,12 @@ public class StandardGBClientIT {
 
         // Upload it
         GBFile newFile = new GBFile(file);
+        newFile.setFatherID(GBFile.ROOT_ID);
         expectedCreation.setRelativeFile(newFile);
         expectedTrash.setRelativeFile(newFile);
         expectedRecover.setRelativeFile(newFile);
         expectedDeletion.setRelativeFile(newFile);
+        log.info("uploading file");
         client.uploadFile(newFile);
         log.info("File uploaded");
 
@@ -210,6 +225,8 @@ public class StandardGBClientIT {
         // Delete the file
         client.removeFile(newFile);
         log.info("File removed");
+
+        countDownLatch.countDown();
     }
 
     public void move (boolean copy) throws IOException, ClientException {
@@ -248,8 +265,9 @@ public class StandardGBClientIT {
         log.info("File exists");
 
         // Change name
-        client.move(detailedUploaded, new GBFile("moved.txt", GBFile.ROOT_ID, false), copy);
+        client.move(detailedUploaded, new GBFile("moved" + new Random().nextInt() + ".txt", GBFile.ROOT_ID, false), copy);
         log.info("File moved");
+        countDownLatch.countDown();
     }
 
     @Test

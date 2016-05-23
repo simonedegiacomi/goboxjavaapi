@@ -345,9 +345,7 @@ public class StandardGBClient extends GBClient {
         try {
             eventsToIgnore.add(file.getPathAsString());
 
-            JsonObject req = new JsonObject();
-            req.add("father", gson.toJsonTree(new GBFile(file.getFatherID()), GBFile.class));
-            req.addProperty("name", file.getName());
+            JsonObject req = gson.toJsonTree(file, GBFile.class).getAsJsonObject();
 
             // Create a new https connection
             HttpsURLConnection conn = currentTransferProfile.openConnection(TransferProfile.Action.UPLOAD, req, true);
@@ -667,7 +665,7 @@ public class StandardGBClient extends GBClient {
         req.add("dst", gson.toJsonTree(dst, GBFile.class));
         req.addProperty("copy", copy);
         try {
-            JsonObject res = server.makeQuery("copy", req).get().getAsJsonObject();
+            JsonObject res = server.makeQuery("move", req).get().getAsJsonObject();
             if (!res.get("success").getAsBoolean()) {
                 throw new ClientException(res.get("error").getAsString());
             }
@@ -808,6 +806,6 @@ public class StandardGBClient extends GBClient {
      * @param echoFilter Echo filter status
      */
     public void setEchoFilter (boolean echoFilter) {
-        this.filterEcho = echoFilter
+        this.filterEcho = echoFilter;
     }
 }

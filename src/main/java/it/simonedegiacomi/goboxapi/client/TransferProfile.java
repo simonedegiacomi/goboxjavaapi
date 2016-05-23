@@ -76,7 +76,7 @@ public class TransferProfile {
 
         this.urls = url;
         this.mode = mode;
-        url.addUrl("receiveFile" + mode, new URL(base + "fromStorage"));
+        url.addUrl("getFile" + mode, new URL(base + "fromStorage"));
         url.addUrl("uploadFile" + mode, new URL(base + "toStorage"));
     }
 
@@ -143,7 +143,7 @@ public class TransferProfile {
      * @return Right urls to use
      */
     public URL getUrl (Action action, JsonObject params, boolean single) {
-        String key = action == Action.DOWNLOAD ? "receiveFile" : "uploadFile";
+        String key = action == Action.DOWNLOAD ? "getFile" : "uploadFile";
         if (mode != StandardGBClient.ConnectionMode.BRIDGE_MODE) {
             key += mode;
         }

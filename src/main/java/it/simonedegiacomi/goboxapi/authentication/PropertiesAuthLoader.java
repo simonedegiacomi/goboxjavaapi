@@ -50,7 +50,7 @@ public class PropertiesAuthLoader {
         if (auth.getToken() != null) {
             return auth.check() ? auth : null;
         }
-        return auth.login(properties.getProperty("passowrd")) ? auth : null;
+        return auth.login(properties.getProperty("password")) ? auth : null;
     }
 
     /**
