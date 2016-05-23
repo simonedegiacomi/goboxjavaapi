@@ -55,7 +55,7 @@ public class StandardGBClientIT {
         countDownLatch = new CountDownLatch(2);
 
         // Prepare snc listener
-        SyncEvent expectedEvent = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
+        final SyncEvent expectedEvent = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
         client.addSyncEventListener(new SyncEventListener() {
 
             @Override
@@ -100,7 +100,7 @@ public class StandardGBClientIT {
         countDownLatch = new CountDownLatch(2);
 
         // Prepare sync event listener
-        SyncEvent expectedEvent = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
+        final SyncEvent expectedEvent = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
         client.addSyncEventListener(new SyncEventListener() {
             @Override
             public void on(SyncEvent event) {
@@ -133,8 +133,8 @@ public class StandardGBClientIT {
         countDownLatch = new CountDownLatch(3);
 
         // Prepare sync event listener
-        SyncEvent expectedCreation = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
-        SyncEvent expectedDeletion = new SyncEvent(SyncEvent.EventKind.FILE_DELETED);
+        final SyncEvent expectedCreation = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
+        final SyncEvent expectedDeletion = new SyncEvent(SyncEvent.EventKind.FILE_DELETED);
         client.addSyncEventListener(new SyncEventListener() {
             @Override
             public void on(SyncEvent event) {
@@ -167,10 +167,10 @@ public class StandardGBClientIT {
         countDownLatch = new CountDownLatch(5);
 
         // Prepare sync event listener
-        SyncEvent expectedCreation = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
-        SyncEvent expectedTrash = new SyncEvent(SyncEvent.EventKind.FILE_TRASHED);
-        SyncEvent expectedRecover = new SyncEvent(SyncEvent.EventKind.FILE_RECOVERED);
-        SyncEvent expectedDeletion = new SyncEvent(SyncEvent.EventKind.FILE_DELETED);
+        final SyncEvent expectedCreation = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
+        final SyncEvent expectedTrash = new SyncEvent(SyncEvent.EventKind.FILE_TRASHED);
+        final SyncEvent expectedRecover = new SyncEvent(SyncEvent.EventKind.FILE_RECOVERED);
+        final SyncEvent expectedDeletion = new SyncEvent(SyncEvent.EventKind.FILE_DELETED);
         client.addSyncEventListener(new SyncEventListener() {
             @Override
             public void on(SyncEvent event) {
@@ -234,7 +234,7 @@ public class StandardGBClientIT {
         countDownLatch = new CountDownLatch(2);
 
         // Prepare sync event listener
-        SyncEvent expectedCreation = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
+        final SyncEvent expectedCreation = new SyncEvent(SyncEvent.EventKind.FILE_CREATED);
         SyncEvent expectedMotion = new SyncEvent(copy ? SyncEvent.EventKind.FILE_COPIED : SyncEvent.EventKind.FILE_MOVED);
         client.addSyncEventListener(new SyncEventListener() {
             @Override

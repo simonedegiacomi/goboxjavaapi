@@ -108,69 +108,72 @@ public class MyWSClient {
             @Override
             public void onTextMessage(WebSocket websocket, final String message) throws Exception {
 
-                executor.submit(() -> {
+                executor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Parse the message
+                        JsonObject json = (JsonObject) parser.parse(message);
 
-                    // Parse the message
-                    JsonObject json = (JsonObject) parser.parse(message);
+                        String event = json.get("event").getAsString();
 
-                    String event = json.get("event").getAsString();
+                        // If the message has not the queryId parameter
+                        // is an simple event
+                        if (!json.has("_queryId") || json.get("_queryId").getAsString().length() <= 0) {
+                            if (!events.containsKey(event)) {
+                                log.warn("Received unknown event: " + event);
+                                return;
+                            }
 
-                    // If the message has not the queryId parameter
-                    // is an simple event
-                    if (!json.has("_queryId") || json.get("_queryId").getAsString().length() <= 0) {
-                        if (!events.containsKey(event)) {
-                            log.warn("Received unknown event: " + event);
+                            events.get(event).onEvent(json.get("data"));
+
                             return;
                         }
 
-                        events.get(event).onEvent(json.get("data"));
+                        // get the _queryId
+                        String queryId = json.get("_queryId").getAsString();
 
-                        return;
-                    }
+                        // Now, check if is a query response
+                        // If is a query response i MUST have an listener onEvent the
+                        // 'queryResponse' map, so check here:
+                        if (event.equals("queryResponse")) {
 
-                    // get the _queryId
-                    String queryId = json.get("_queryId").getAsString();
+                            if (!queryResponses.containsKey(queryId)) {
+                                log.warn("Unknown query response received");
+                                return;
+                            }
 
-                    // Now, check if is a query response
-                    // If is a query response i MUST have an listener onEvent the
-                    // 'queryResponse' map, so check here:
-                    if (event.equals("queryResponse")) {
-
-                        if (!queryResponses.containsKey(queryId)) {
-                            log.warn("Unknown query response received");
+                            // Get and remove the response listener
+                            queryResponses.remove(queryId).onResponse(json.get("data"));
                             return;
                         }
 
-                        // Get and remove the response listener
-                        queryResponses.remove(queryId).onResponse(json.get("data"));
-                        return;
+                        // If is not a query response neither, is a query made to this program, so
+                        // find the object that will answer this query.
+
+                        if (!queryAnswers.containsKey(event)) {
+                            log.warn("Unknown query received: " + event);
+                            return;
+                        }
+
+                        // Prepare the response with teh same query Id
+                        JsonObject response = new JsonObject();
+                        response.addProperty("event", "queryResponse");
+                        response.addProperty("_queryId", json.get("_queryId").getAsString());
+
+                        // Call the handler
+                        try {
+                            JsonElement answer = queryAnswers.get(event).onQuery(json.get("data"));
+                            response.add("data", answer);
+                        } catch (Exception ex) {
+                            log.warn("WS Query Handler Exception: " + ex.toString());
+                            JsonObject errorAnswer = new JsonObject();
+                            errorAnswer.addProperty("error", ex.toString());
+                            response.add("data", errorAnswer);
+                        }
+                        server.sendText(response.toString());
                     }
-
-                    // If is not a query response neither, is a query made to this program, so
-                    // find the object that will answer this query.
-
-                    if (!queryAnswers.containsKey(event)) {
-                        log.warn("Unknown query received: " + event);
-                        return;
-                    }
-
-                    // Prepare the response with teh same query Id
-                    JsonObject response = new JsonObject();
-                    response.addProperty("event", "queryResponse");
-                    response.addProperty("_queryId", json.get("_queryId").getAsString());
-
-                    // Call the handler
-                    try {
-                        JsonElement answer = queryAnswers.get(event).onQuery(json.get("data"));
-                        response.add("data", answer);
-                    } catch (Exception ex) {
-                        log.warn("WS Query Handler Exception: " + ex.toString());
-                        JsonObject errorAnswer = new JsonObject();
-                        errorAnswer.addProperty("error", ex.toString());
-                        response.add("data", errorAnswer);
-                    }
-                    server.sendText(response.toString());
                 });
+
             }
 
             @Override
@@ -211,7 +214,7 @@ public class MyWSClient {
      * @param host IP of the proxy
      * @param port Port of the proxy
      */
-    public static void setProxy (String host, int port) {
+    public static void setProxy(String host, int port) {
         ProxySettings proxy = factory.getProxySettings();
         proxy.setHost(host);
         proxy.setPort(port);
