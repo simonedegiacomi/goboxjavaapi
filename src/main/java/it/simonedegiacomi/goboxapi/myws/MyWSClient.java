@@ -87,15 +87,21 @@ public class MyWSClient {
     /**
      * Executor used to use the java FutureTask
      */
-    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 8, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(8));
+    private final AbstractExecutorService executor;
+
+    public MyWSClient (URI uri) throws IOException {
+        this(uri, new ThreadPoolExecutor(2, 8, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(8)));
+    }
 
     /**
      * Create a new client without connecting to the sever
      *
      * @param uri URI of the server
+     * @param executor Executor to use.
      * @throws IOException Error while creating the ws socket with the websocket factory
      */
-    public MyWSClient(URI uri) throws IOException {
+    public MyWSClient(URI uri, AbstractExecutorService ex) throws IOException {
+        this.executor = ex;
 
         // Initialize the maps
         events = new HashMap<>();
