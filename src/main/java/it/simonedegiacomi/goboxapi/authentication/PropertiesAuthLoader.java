@@ -30,7 +30,7 @@ public class PropertiesAuthLoader {
      * Load username, token and mode from properties and put them into a new auth object
      * @param file File to which read the properties
      * @return Loaded auth object
-     * @throws IOException
+     * @throws IOException network error
      */
     public static GBAuth loadFromPropertiesFile (File file) throws IOException {
         Properties temp = new Properties();

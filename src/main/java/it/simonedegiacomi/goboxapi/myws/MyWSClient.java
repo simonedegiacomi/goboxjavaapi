@@ -97,7 +97,7 @@ public class MyWSClient {
      * Create a new client without connecting to the sever
      *
      * @param uri URI of the server
-     * @param executor Executor to use.
+     * @param ex Executor to use.
      * @throws IOException Error while creating the ws socket with the websocket factory
      */
     public MyWSClient(URI uri, AbstractExecutorService ex) throws IOException {
@@ -171,7 +171,7 @@ public class MyWSClient {
                             JsonElement answer = queryAnswers.get(event).onQuery(json.get("data"));
                             response.add("data", answer);
                         } catch (Exception ex) {
-                            log.warn("WS Query Handler Exception: " + ex.toString());
+                            log.warn("WS Query Handler Exception: " + ex.toString(), ex);
                             JsonObject errorAnswer = new JsonObject();
                             errorAnswer.addProperty("error", ex.toString());
                             response.add("data", errorAnswer);

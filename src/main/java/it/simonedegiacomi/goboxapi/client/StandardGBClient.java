@@ -66,7 +66,7 @@ public class StandardGBClient extends GBClient {
     /**
      * Authorization object used to make the call
      */
-    private final GBAuth GBAuth;
+    private final GBAuth auth;
 
     /**
      * Gson instance to create json objects
@@ -114,7 +114,7 @@ public class StandardGBClient extends GBClient {
      * @param GBAuth GBAuth object that will be used to authenticate
      */
     public StandardGBClient(final GBAuth GBAuth) {
-        this.GBAuth = GBAuth;
+        this.auth = GBAuth;
         this.currentTransferProfile = new TransferProfile(urls, GBAuth);
     }
 
@@ -171,7 +171,7 @@ public class StandardGBClient extends GBClient {
         }
 
         // Authorize the connection
-        GBAuth.authorize(server);
+        auth.authorize(server);
 
         // When the webSocket in opened, send the authentication object
         server.onEvent("open", new WSEventListener() {
@@ -408,7 +408,7 @@ public class StandardGBClient extends GBClient {
      *
      * @param father File to look at
      * @return New GBFile with the information of the storage
-     * @throws ClientException
+     * @throws ClientException client error
      */
     @Override
     public GBFile getInfo(GBFile father) throws ClientException {
@@ -696,7 +696,7 @@ public class StandardGBClient extends GBClient {
             return;
 
         if (nextMode == ConnectionMode.BRIDGE_MODE) {
-            currentTransferProfile = new TransferProfile(urls, GBAuth);
+            currentTransferProfile = new TransferProfile(urls, auth);
             log.info("Switched to bridge mode");
             return;
         }

@@ -222,7 +222,7 @@ public class GBFile {
         this.ID = ID;
     }
 
-    private void setIsDirectory (boolean isDirectory) {
+    public void setIsDirectory (boolean isDirectory) {
         if ((this.isDirectory = isDirectory)) {
             children = new LinkedList<>();
         }
@@ -242,6 +242,31 @@ public class GBFile {
      */
     public long getFatherID() {
         return fatherID;
+    }
+
+    /**
+     * Create a father reference
+     * @return Reference to the father
+     */
+    public GBFile getFather () {
+
+        // Assert that this is not the root
+        if (ID == ROOT_ID)
+            throw new IllegalStateException("The root hasn't a father");
+
+        GBFile father = new GBFile(fatherID);
+
+        if (path != null) {
+            List<GBFile> temp = getPathAsList();
+            temp.remove(temp.size() - 1);
+            father.setPathByList(temp);
+        }
+
+        if (prefix != null) {
+            father.prefix = prefix;
+        }
+
+        return father;
     }
 
     /**

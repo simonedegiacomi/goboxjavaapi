@@ -35,11 +35,6 @@ public class StandardGBClientIT {
 
     @Before
     public void init () throws IOException, ClientException {
-        MyWSClient.setProxy("127.0.0.1", 3128);
-        System.setProperty("http.proxyHost", "127.0.0.1");
-        System.setProperty("http.proxyPort", "3128");
-        System.setProperty("https.proxyHost", "127.0.0.1");
-        System.setProperty("https.proxyPort", "3128");
 
         org.apache.log4j.BasicConfigurator.configure();
         client = new StandardGBClient(PropertiesAuthLoader.loadAndLoginFromFile(new File(getClass().getResource("/client_auth.properties").getFile())));

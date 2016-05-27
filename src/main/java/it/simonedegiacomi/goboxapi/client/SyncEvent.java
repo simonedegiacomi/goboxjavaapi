@@ -100,7 +100,7 @@ public class SyncEvent implements Comparable {
 
     @DatabaseField
     @Expose
-    private long date;
+    private long date = System.currentTimeMillis();
 
     public SyncEvent () { }
 
