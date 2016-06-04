@@ -1,5 +1,7 @@
 package it.simonedegiacomi.goboxapi.utils;
 
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -19,6 +21,20 @@ public class MyGsonBuilder {
         GsonBuilder builder = new GsonBuilder();
 
         builder.excludeFieldsWithoutExposeAnnotation();
+//        builder.setExclusionStrategies(new ExclusionStrategy() {
+//            @Override
+//            public boolean shouldSkipField(FieldAttributes field) {
+//                String className = field.getDeclaringClass().getName();
+//                String fieldName = field.getName();
+//                field.get
+//                return false;
+//            }
+//
+//            @Override
+//            public boolean shouldSkipClass(Class<?> clazz) {
+//                return false;
+//            }
+//        })
 
         return builder.create();
     }

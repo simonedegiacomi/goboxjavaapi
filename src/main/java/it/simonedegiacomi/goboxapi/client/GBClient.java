@@ -102,9 +102,8 @@ public abstract class GBClient {
     public void getFile (GBFile file) throws ClientException, IOException {
 
         // Create the necessary directories
-        String filePath = file.getPathAsString();
-        File father = new File(filePath.substring(0, filePath.lastIndexOf("/")));
-        father.mkdirs();
+        GBFile father = file.getFather();
+        father.toFile().mkdirs();
 
         // Then download the file
         OutputStream out = new FileOutputStream(file.toFile());

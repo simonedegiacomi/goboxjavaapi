@@ -96,7 +96,7 @@ public class StandardGBClient extends GBClient {
     /**
      * Filter echo sync event
      */
-    private boolean filterEcho = false;
+    private boolean filterEcho = true;
 
     /**
      * Listener for the disconnection
@@ -268,10 +268,14 @@ public class StandardGBClient extends GBClient {
                 // Wrap the data in a new SyncEvent
                 SyncEvent event = gson.fromJson(data, SyncEvent.class);
 
+                log.info("New event from storage " + event.getKind() + " file " + event.getRelativeFile());
+
                 // Check if this is the notification for a event that i've generated.
-                if (eventsToIgnore.remove(event.getRelativeFile().getPathAsString()) && filterEcho)
+                if (eventsToIgnore.remove(event.getRelativeFile().getPathAsString()) && filterEcho) {
                     // Because i've generated this event, i ignore it
+                    log.info("Sync event ignored, i generated it");
                     return;
+                }
 
                 // And call all the listeners
                 for (SyncEventListener listener : listeners)
@@ -361,6 +365,7 @@ public class StandardGBClient extends GBClient {
             ByteStreams.copy(stream, toStorage);
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
+                log.warn(conn.getResponseMessage());
                 throw new ClientException("Response code of the upload: " + responseCode);
             }
 
@@ -387,6 +392,7 @@ public class StandardGBClient extends GBClient {
             throw new IllegalStateException("client not initialized");
 
         try {
+            // TODO: handler errors
             // Ignore the events from the server related to this file
             eventsToIgnore.add(newDir.getPathAsString());
             FutureTask<JsonElement> future = server.makeQuery("createFolder", gson.toJsonTree(newDir, GBFile.class));
@@ -433,10 +439,7 @@ public class StandardGBClient extends GBClient {
             // cache the file
             cache.add(detailedFile);
             return detailedFile;
-        } catch (InterruptedException ex) {
-            log.warn(ex.toString(), ex);
-            throw new ClientException(ex.toString());
-        } catch (ExecutionException ex) {
+        } catch (InterruptedException | ExecutionException ex) {
             log.warn(ex.toString(), ex);
             throw new ClientException(ex.toString());
         }
@@ -802,10 +805,19 @@ public class StandardGBClient extends GBClient {
     }
 
     /**
-     * Enable or disable filter for echo sync event
+     * Enable or disable filter for echo sync event.
+     * Default is true
      * @param echoFilter Echo filter status
      */
     public void setEchoFilter (boolean echoFilter) {
         this.filterEcho = echoFilter;
+    }
+
+    /**
+     * Return the current transfer profile. Useful to know the current connection mode
+     * @return Current transfer profile
+     */
+    public TransferProfile getCurrentTransferProfile () {
+        return currentTransferProfile;
     }
 }

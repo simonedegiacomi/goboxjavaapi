@@ -259,7 +259,13 @@ public class GBFile {
         if (path != null) {
             List<GBFile> temp = getPathAsList();
             temp.remove(temp.size() - 1);
-            father.setPathByList(temp);
+            if (temp.size() <= 0) {
+                father.setID(GBFile.ROOT_ID);
+                temp.add(GBFile.ROOT_FILE);
+                father.setPathByList(temp);
+            } else {
+                father.setPathByList(temp);
+            }
         }
 
         if (prefix != null) {
