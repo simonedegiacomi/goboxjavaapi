@@ -422,7 +422,7 @@ public class GBFile {
             String[] pieces = prefix.split("/");
 
             for (int i = pieces.length - 1; i >= 0; i--)
-                temp.add(0, new GBFile(pieces[i], true));
+                    temp.add(0, new GBFile(pieces[i], true));
         }
 
         // Return the path as list
@@ -444,7 +444,7 @@ public class GBFile {
         boolean first = true;
         for(GBFile piece : list) {
             // If it's not the first piece...
-            if(!first)
+            if(!first && piece.getName().length() > 0)
                 builder.append('/'); // add the slash
 
             // Add the piece
@@ -584,16 +584,6 @@ public class GBFile {
      */
     public void setChildren(List<GBFile> children) {
         this.children = children;
-        if (path == null) {
-            return;
-        }
-        List<GBFile> myPath = getPathAsList();
-        for (GBFile child : children) {
-            child.setPrefix(prefix);
-            LinkedList<GBFile> childPath = new LinkedList<>(myPath);
-            childPath.add(child);
-            child.setPathByList(childPath);
-        }
     }
 
     public String getMime() {

@@ -3,6 +3,7 @@ package it.simonedegiacomi.goboxapi.client;
 import com.google.gson.JsonObject;
 import it.simonedegiacomi.goboxapi.authentication.GBAuth;
 import it.simonedegiacomi.goboxapi.utils.URLBuilder;
+import org.apache.log4j.Logger;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -18,6 +19,11 @@ import java.security.InvalidParameterException;
  * @author Degiacomi Simone
  */
 public class TransferProfile {
+
+    /**
+     * Logger of the class
+     */
+    private final static Logger log = Logger.getLogger(TransferProfile.class);
 
     /**
      * Type of action
@@ -159,7 +165,15 @@ public class TransferProfile {
      * @throws IOException
      */
     public HttpsURLConnection openConnection (Action action, JsonObject params, boolean single) throws IOException {
-        HttpsURLConnection conn = (HttpsURLConnection) getUrl(action, params, single).openConnection();
+
+        // Get the url
+        URL url = getUrl(action, params, single);
+
+        // Open the connection
+        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+        log.info("Http request to " + url);
+
+        // Prepare the connection
         prepare(conn);
         return conn;
     }

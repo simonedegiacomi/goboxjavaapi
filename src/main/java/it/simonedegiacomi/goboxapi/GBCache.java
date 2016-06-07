@@ -31,17 +31,6 @@ public class GBCache {
 
         // add the file in the cache path
         cacheByPath.put(file.getPathAsString(), file);
-        if(file.getChildren() == null)
-            return;
-
-        // Cache the children file
-        if (file.isDirectory() && file.getChildren() != null) {
-            for (GBFile child : file.getChildren()) {
-                if (!child.isDirectory()) {
-                    add(child);
-                }
-            }
-        }
     }
 
     /**

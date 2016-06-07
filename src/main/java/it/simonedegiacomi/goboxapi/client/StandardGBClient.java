@@ -188,7 +188,7 @@ public class StandardGBClient extends GBClient {
                 log.info("websocket error");
 
                 // If the client was ready
-                if (state == ClientState.READY) {
+                if (state == ClientState.READY && disconnectedListener != null) {
 
                     // Call disconnect listener
                     disconnectedListener.onDisconnect();
@@ -205,7 +205,7 @@ public class StandardGBClient extends GBClient {
                 log.info("websocket closed");
 
                 // If the client was ready
-                if (state == ClientState.READY) {
+                if (state == ClientState.READY && disconnectedListener != null) {
 
                     // Call disconnect listener
                     disconnectedListener.onDisconnect();
@@ -313,10 +313,12 @@ public class StandardGBClient extends GBClient {
             // Open the connection
             HttpsURLConnection conn = currentTransferProfile.openConnection(TransferProfile.Action.DOWNLOAD, request, false);
 
-            InputStream fromServer = conn.getInputStream();
 
             // Copy the file
+            log.info("Start file download");
+            InputStream fromServer = conn.getInputStream();
             ByteStreams.copy(conn.getInputStream(), dst);
+            log.info("Download completed");
 
             // Close the connection
             fromServer.close();
@@ -348,7 +350,9 @@ public class StandardGBClient extends GBClient {
 
         try {
             eventsToIgnore.add(file.getPathAsString());
+            log.info("Add " + file + " to echo filter");
 
+            // Serialize the file tou pload
             JsonObject req = gson.toJsonTree(file, GBFile.class).getAsJsonObject();
 
             // Create a new https connection
@@ -360,10 +364,15 @@ public class StandardGBClient extends GBClient {
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Length", String.valueOf(file.getSize()));
 
+            log.info("Uploading file...");
             OutputStream toStorage = conn.getOutputStream();
             // Send the file
             ByteStreams.copy(stream, toStorage);
+            log.info("Upload finish");
+
+            // Get the response code
             int responseCode = conn.getResponseCode();
+
             if (responseCode != 200) {
                 log.warn(conn.getResponseMessage());
                 throw new ClientException("Response code of the upload: " + responseCode);

@@ -24,17 +24,16 @@ public class MyGsonBuilder {
 //        builder.setExclusionStrategies(new ExclusionStrategy() {
 //            @Override
 //            public boolean shouldSkipField(FieldAttributes field) {
-//                String className = field.getDeclaringClass().getName();
-//                String fieldName = field.getName();
-//                field.get
-//                return false;
+//                field.
+//                return field.getAnnotation(GBFileIDReference.class) != null;
 //            }
 //
 //            @Override
 //            public boolean shouldSkipClass(Class<?> clazz) {
 //                return false;
 //            }
-//        })
+//        });
+
 
         return builder.create();
     }
