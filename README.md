@@ -1,6 +1,9 @@
 # GoBoxAPI
 This repository contains the code of the API for manage the files of your GoBox Storage.
 
+## What is GoBox
+If you want to know more about GoBox, please read the [Client README](https://github.com/simonedegiacomi/goboxclient).
+
 ## How to Import
 ### Maven
 To import this library you can use [Jitpack](https://jitpack.io/).
